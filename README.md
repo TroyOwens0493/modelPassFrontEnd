@@ -1,47 +1,76 @@
-# Svelte + TS + Vite
+# Model Pass
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Svelte + Vite app for the Model Pass chat experience.
 
-## Recommended IDE Setup
+## Current App Shell
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+`src/App.svelte` owns the signed-in shell:
 
-## Need an official Svelte framework?
+- Persistent warm-dark app layout.
+- Left sidebar.
+- Main content outlet area.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+`src/Sidebar.svelte` owns the sidebar UI:
 
-## Technical considerations
+- Model Pass brand.
+- New chat button.
+- Search chats field.
+- Static recent-chat examples.
+- Profile and credits summary pinned at the bottom.
 
-**Why use this over SvelteKit?**
+The main content is intentionally a placeholder. Chat, signup, login, profile,
+and credits pages will be added later.
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+## Routing
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+Minimal routing is wired through `src/router.ts`. Only routes with real page
+components should be active; planned routes can stay commented out until their
+pages exist.
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+When pages are added, keep routing simple:
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+1. `App.svelte` should keep owning the app shell.
+2. The router should choose only the active page component for the main content
+   area.
+3. Shared chrome, including the sidebar and profile/credits summary, should stay
+   outside page components.
+4. Page components should own their own content and behavior.
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+The intended shape is:
 
-**Why include `.vscode/extensions.json`?**
+```svelte
+<div class="app-shell">
+  <Sidebar />
+  <main class="app-main">
+    <svelte:component this={route.component} />
+  </main>
+</div>
+```
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+`src/router.ts` contains a small browser-history router helper. Before wiring it
+in, read the `router.current` store value into a local reactive value; `router`
+itself is not a Svelte store.
 
-**Why enable `allowJs` in the TS template?**
+```svelte
+<script lang="ts">
+  const router = createRouter(routes)
+  const currentRoute = router.current
+  $: pathname = $currentRoute
+  $: route = router.match(pathname)
+</script>
+```
 
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
+Do not use `$router.current`; that tries to subscribe to `router`, not to
+`router.current`.
 
-**Why is HMR not preserving my local component state?**
+Use a routing library only when this small helper becomes painful: nested
+routes, route params, auth guards, loaders, or complicated link state.
 
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
+## Development
 
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```sh
+pnpm install
+pnpm run dev
+pnpm run check
+pnpm run build
 ```
