@@ -7,15 +7,21 @@ export type Route = {
 }
 
 export function createRouter(routes: Route[]) {
+    let setCurrent: ((path: string) => void) | undefined
+
     const current = readable(location.pathname, (set) => {
+        setCurrent = set
         const update = () => set(location.pathname)
         addEventListener('popstate', update)
-        return () => removeEventListener('popstate', update)
+        return () => {
+            removeEventListener('popstate', update)
+            setCurrent = undefined
+        }
     })
 
     function goto(path: string) {
         history.pushState(null, '', path)
-        dispatchEvent(new PopStateEvent('popstate'))
+        setCurrent?.(location.pathname)
     }
 
     function match(path: string) {
