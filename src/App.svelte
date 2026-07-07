@@ -18,6 +18,6 @@
     <Sidebar />
 
     <main class="app-main" aria-label="Model Pass app content">
-        <CurrentRoute />
+        <svelte:component this={CurrentRoute} />
     </main>
 </div>
