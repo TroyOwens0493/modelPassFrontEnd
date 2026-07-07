@@ -23,48 +23,36 @@ and credits pages will be added later.
 
 ## Routing
 
-Minimal routing is wired through `src/router.ts`. Only routes with real page
-components should be active; planned routes can stay commented out until their
-pages exist.
+Routing lives in `src/router.ts` and is wired from `src/App.svelte`.
 
-When pages are added, keep routing simple:
+To add a page:
 
-1. `App.svelte` should keep owning the app shell.
-2. The router should choose only the active page component for the main content
-   area.
-3. Shared chrome, including the sidebar and profile/credits summary, should stay
-   outside page components.
-4. Page components should own their own content and behavior.
+1. Create the page component, for example `src/signup/SignUp.svelte`.
+2. Import it in `src/App.svelte`.
+3. Add it to the route list:
 
-The intended shape is:
+```ts
+const router = createRouter([
+  { path: "/", component: Home },
+  { path: "/signup", component: SignUp },
+  { path: "*", component: Home },
+]);
+```
+
+Use `router.goto("/signup")` for in-app navigation. The router uses exact path
+matches, so `/signup` and `/signup/` are different routes.
+
+Keep shared app chrome in `App.svelte`; route components should only own the
+main page content:
 
 ```svelte
 <div class="app-shell">
   <Sidebar />
   <main class="app-main">
-    <svelte:component this={route.component} />
+    <CurrentRoute />
   </main>
 </div>
 ```
-
-`src/router.ts` contains a small browser-history router helper. Before wiring it
-in, read the `router.current` store value into a local reactive value; `router`
-itself is not a Svelte store.
-
-```svelte
-<script lang="ts">
-  const router = createRouter(routes)
-  const currentRoute = router.current
-  $: pathname = $currentRoute
-  $: route = router.match(pathname)
-</script>
-```
-
-Do not use `$router.current`; that tries to subscribe to `router`, not to
-`router.current`.
-
-Use a routing library only when this small helper becomes painful: nested
-routes, route params, auth guards, loaders, or complicated link state.
 
 ## Development
 

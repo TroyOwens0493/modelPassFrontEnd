@@ -10,9 +10,8 @@
         // { path: "/login", component: Login },
         { path: "*", component: Home },
     ]);
-    const current = router.current;
-
-    let CurrentRoute = $derived(router.match($current)?.component ?? Home);
+    const currentRoute = router.current;
+    let CurrentRoute = $derived(router.match($currentRoute)?.component ?? Home);
 </script>
 
 <div class="app-shell">
