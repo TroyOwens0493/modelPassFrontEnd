@@ -1,11 +1,12 @@
 <script lang="ts">
     import Sidebar from "./Sidebar.svelte";
     import Home from "./Home.svelte";
+    import Chat from "./chat/Chat.svelte";
     import { createRouter } from "./router";
 
     const router = createRouter([
         { path: "/", component: Home },
-        // { path: "/chat", component: Chat },
+        { path: "/chat", component: Chat },
         // { path: "/signup", component: SignUp },
         // { path: "/login", component: Login },
         { path: "*", component: Home },
@@ -15,9 +16,9 @@
 </script>
 
 <div class="app-shell">
-    <Sidebar />
+    <Sidebar goto={router.goto}/>
 
     <main class="app-main" aria-label="Model Pass app content">
-        <svelte:component this={CurrentRoute} />
+        <CurrentRoute />
     </main>
 </div>
