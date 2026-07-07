@@ -1,40 +1,54 @@
 <script lang="ts">
   const user = {
-    name: 'ModelPass User',
-    email: 'user@example.com',
-    createdAt: 'July 2026',
+    name: 'Sam Rivera',
+    email: 'sam@rivera.co',
+    initials: 'SR',
+    createdAt: '2025',
   }
 
   const usage = {
-    creditBalance: 100,
-    creditsUsed: 25,
+    creditBalance: 1240,
+    creditsUsed: 3760,
     tokensUsed: 12000,
+    estimatedMessages: 400,
   }
+
+  const recentChats = [
+    'Saturday dinner party menu',
+    'Explain mortgage rates simply',
+    'Lisbon trip - 4 days',
+    "Kids' science questions",
+  ]
 
   const models = [
     {
       slug: 'openai/gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      description: 'Fast, affordable model for everyday chats.',
+      name: 'GPT-4o mini',
+      description: 'Quick answers for everyday questions',
     },
     {
       slug: 'anthropic/claude-3.5-sonnet',
-      name: 'Claude 3.5 Sonnet',
-      description: 'Strong reasoning model for detailed responses.',
+      name: 'Claude Sonnet',
+      description: 'Thoughtful writing and clear explanations',
+    },
+    {
+      slug: 'google/gemini-flash',
+      name: 'Gemini Flash',
+      description: 'Speedy and great with long documents',
     },
   ]
 
   const replyStyles = [
-    { value: 'balanced', label: 'Balanced' },
-    { value: 'concise', label: 'Concise' },
+    { value: 'plain', label: 'Plain & friendly' },
     { value: 'detailed', label: 'Detailed' },
-    { value: 'creative', label: 'Creative' },
   ]
 
   let defaultModel = models[0].slug
-  let replyStyle = 'balanced'
+  let replyStyle = replyStyles[0].value
   let savedMessage = ''
   let isSaving = false
+
+  $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0]
 
   function savePreferences() {
     isSaving = true
@@ -42,262 +56,666 @@
 
     window.setTimeout(() => {
       isSaving = false
-      savedMessage = 'Preferences saved for this session.'
+      savedMessage = 'Preferences saved'
     }, 500)
   }
 </script>
 
-<section class="profile-page">
-  <header class="profile-header">
-    <p class="eyebrow">ModelPass account</p>
-    <h1>Profile</h1>
-    <p>Manage your ModelPass preferences and account details.</p>
-  </header>
+<section class="profile-shell">
+  <aside class="sidebar" aria-label="ModelPass navigation">
+    <div class="brand">
+      <div class="brand-mark">m</div>
+      <span>Model Pass</span>
+    </div>
 
-  <div class="profile-grid">
-    <section class="card account-card">
+    <a class="new-chat" href="/">
+      <span aria-hidden="true">+</span>
+      New chat
+    </a>
+
+    <div class="search-box">Search chats</div>
+
+    <nav class="recent-list" aria-label="Recent chats">
+      <p>Recent</p>
+      {#each recentChats as chat}
+        <a href="/">{chat}</a>
+      {/each}
+    </nav>
+
+    <div class="sidebar-user" aria-current="page">
+      <div class="avatar small">{user.initials}</div>
       <div>
-        <h2>Account</h2>
-        <p class="card-description">Your login identity is managed through WorkOS.</p>
+        <strong>{user.name}</strong>
+        <span>{usage.creditBalance.toLocaleString()} credits left</span>
       </div>
+    </div>
+  </aside>
 
-      <dl class="details-list">
-        <div>
-          <dt>Name</dt>
-          <dd>{user.name}</dd>
+  <main class="profile-main">
+    <header class="topbar">
+      <h1>Profile</h1>
+    </header>
+
+    <div class="profile-content">
+      <section class="identity-card" aria-label="Profile summary">
+        <div class="avatar large">{user.initials}</div>
+        <div class="identity-copy">
+          <h2>{user.name}</h2>
+          <p>{user.email}</p>
+          <div class="meta-row">
+            <span class="plan-pill"><span></span>Pay-as-you-go</span>
+            <span>Member since {user.createdAt}</span>
+          </div>
         </div>
-        <div>
-          <dt>Email</dt>
-          <dd>{user.email}</dd>
+        <button class="ghost-button" type="button">Edit</button>
+      </section>
+
+      <section class="settings-section">
+        <p class="section-label">Your details</p>
+        <div class="settings-card">
+          <div class="settings-row">
+            <span>Name</span>
+            <strong>{user.name}</strong>
+          </div>
+          <div class="settings-row">
+            <span>Email</span>
+            <strong>{user.email}</strong>
+          </div>
+          <div class="settings-row">
+            <span>Password</span>
+            <strong>••••••••</strong>
+          </div>
         </div>
-        <div>
-          <dt>Member since</dt>
-          <dd>{user.createdAt}</dd>
-        </div>
-      </dl>
-    </section>
+      </section>
 
-    <section class="card preferences-card">
-      <div>
-        <h2>Preferences</h2>
-        <p class="card-description">Set the defaults that new chats should start with.</p>
-      </div>
+      <section class="settings-section">
+        <p class="section-label">Chat preferences</p>
+        <form class="settings-card" on:submit|preventDefault={savePreferences}>
+          <label class="settings-row preference-row">
+            <span>Default model</span>
+            <span class="model-control">
+              <span class="model-dot"></span>
+              <select bind:value={defaultModel} aria-label="Default model">
+                {#each models as model}
+                  <option value={model.slug}>{model.name}</option>
+                {/each}
+              </select>
+            </span>
+          </label>
 
-      <form on:submit|preventDefault={savePreferences}>
-        <label>
-          Default model
-          <select bind:value={defaultModel}>
-            {#each models as model}
-              <option value={model.slug}>{model.name}</option>
-            {/each}
-          </select>
-        </label>
+          <div class="settings-row preference-row">
+            <span>Reply style</span>
+            <div class="segmented-control" aria-label="Reply style">
+              {#each replyStyles as style}
+                <button
+                  class:active={replyStyle === style.value}
+                  type="button"
+                  on:click={() => (replyStyle = style.value)}
+                >
+                  {style.label}
+                </button>
+              {/each}
+            </div>
+          </div>
 
-        <label>
-          Reply style
-          <select bind:value={replyStyle}>
-            {#each replyStyles as style}
-              <option value={style.value}>{style.label}</option>
-            {/each}
-          </select>
-        </label>
-
-        <button type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save preferences'}
-        </button>
-
+          <div class="save-row">
+            <div>
+              <strong>{selectedModel.name}</strong>
+              <span>{selectedModel.description}</span>
+            </div>
+            <button class="save-button" type="submit" disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
         {#if savedMessage}
-          <p class="success-message">{savedMessage}</p>
+          <p class="save-message">{savedMessage}</p>
         {/if}
-      </form>
-    </section>
+      </section>
 
-    <section class="card usage-card">
-      <div>
-        <h2>Usage</h2>
-        <p class="card-description">A quick summary of your current ModelPass usage.</p>
-      </div>
-
-      <div class="usage-stats">
+      <section class="credits-mini">
         <div>
-          <span>Credit balance</span>
-          <strong>{usage.creditBalance}</strong>
+          <h2>{usage.creditBalance.toLocaleString()} credits left</h2>
+          <p>About {usage.estimatedMessages.toLocaleString()} everyday messages</p>
         </div>
+        <a href="/credits">Manage credits</a>
+      </section>
+
+      <section class="usage-strip" aria-label="Usage summary">
         <div>
           <span>Credits used</span>
-          <strong>{usage.creditsUsed}</strong>
+          <strong>{usage.creditsUsed.toLocaleString()}</strong>
         </div>
         <div>
           <span>Tokens used</span>
           <strong>{usage.tokensUsed.toLocaleString()}</strong>
         </div>
-      </div>
+      </section>
 
-      <a class="credits-link" href="/credits">Manage credits</a>
-    </section>
-  </div>
+      <button class="sign-out" type="button">Sign out</button>
+    </div>
+  </main>
 </section>
 
 <style>
-  .profile-page {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 3rem 2rem;
+  @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+
+  :global(body) {
+    background: #241f1a;
+  }
+
+  .profile-shell {
+    --accent: #e8a04d;
+    --screen: #1a1714;
+    --sidebar: #161310;
+    --panel: #201c18;
+    --panel-2: #211d19;
+    --input: #1a1714;
+    --line: rgba(255, 240, 220, 0.06);
+    --line-strong: rgba(255, 240, 220, 0.12);
+    --text: #f2ece4;
+    --muted: #8e8478;
+    --muted-2: #6b6358;
+
+    display: flex;
+    min-height: 760px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--screen);
+    box-shadow: 0 30px 60px -22px rgba(0, 0, 0, 0.55);
+    color: var(--text);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
     text-align: left;
   }
 
-  .profile-header {
-    margin-bottom: 2rem;
+  .sidebar {
+    display: flex;
+    flex: 0 0 248px;
+    flex-direction: column;
+    gap: 14px;
+    border-right: 1px solid var(--line);
+    background: var(--sidebar);
+    padding: 18px 14px;
   }
 
-  .eyebrow {
-    margin-bottom: 0.5rem;
-    color: var(--accent);
-    font-size: 0.85rem;
+  .brand,
+  .sidebar-user,
+  .new-chat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand {
+    padding: 2px 6px 4px;
+    font-size: 15.5px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+
+  .brand-mark {
+    display: grid;
+    width: 27px;
+    height: 27px;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--screen);
     font-weight: 700;
-    letter-spacing: 0.08em;
+  }
+
+  .new-chat {
+    border-radius: 11px;
+    padding: 11px 14px;
+    background: var(--accent);
+    color: var(--screen);
+    font-size: 13.5px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .search-box {
+    border: 1px solid rgba(255, 240, 220, 0.05);
+    border-radius: 10px;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .recent-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+  }
+
+  .recent-list p,
+  .section-label {
+    margin: 0;
+    color: var(--muted-2);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
   }
 
-  .profile-header h1 {
-    margin: 0 0 0.5rem;
+  .recent-list p {
+    padding: 10px 10px 6px;
   }
 
-  .profile-grid {
-    display: grid;
-    gap: 1rem;
+  .recent-list a {
+    overflow: hidden;
+    border-radius: 9px;
+    padding: 9px 11px;
+    color: #9a9084;
+    font-size: 13px;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .card {
-    display: grid;
-    gap: 1.25rem;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    background: var(--bg);
-    box-shadow: var(--shadow);
-  }
-
-  .card h2 {
-    margin: 0 0 0.35rem;
-  }
-
-  .card-description {
+  .recent-list a:hover {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
     color: var(--text);
   }
 
-  .details-list {
+  .sidebar-user {
+    border-top: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 8px;
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+  }
+
+  .sidebar-user strong {
+    display: block;
+    color: #e8ddcf;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .sidebar-user span {
+    color: #7c7163;
+    font-size: 11px;
+  }
+
+  .avatar {
     display: grid;
-    gap: 1rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 50%;
+    background: #3a322a;
+    color: #f2ece4;
+    font-weight: 650;
+  }
+
+  .avatar.small {
+    width: 30px;
+    height: 30px;
+    font-size: 12.5px;
+  }
+
+  .avatar.large {
+    width: 58px;
+    height: 58px;
+    font-size: 21px;
+  }
+
+  .profile-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .topbar {
+    display: flex;
+    height: 54px;
+    flex-shrink: 0;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 240, 220, 0.05);
+    padding: 0 26px;
+  }
+
+  .topbar h1 {
     margin: 0;
+    color: #e8ddcf;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
   }
 
-  .details-list div {
-    display: grid;
-    gap: 0.25rem;
-  }
-
-  .details-list dt,
-  .usage-stats span {
-    color: var(--text);
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .details-list dd {
-    margin: 0;
-    color: var(--text-h);
-    font-weight: 600;
-  }
-
-  form {
-    display: grid;
-    gap: 1rem;
-  }
-
-  label {
-    display: grid;
-    gap: 0.4rem;
-    color: var(--text-h);
-    font-weight: 700;
-  }
-
-  select {
+  .profile-content {
+    display: flex;
     width: 100%;
-    box-sizing: border-box;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.75rem;
-    color: var(--text-h);
-    background: var(--bg);
-    font: inherit;
+    max-width: 560px;
+    flex-direction: column;
+    gap: 22px;
+    margin: 0 auto;
+    padding: 30px 24px;
   }
 
-  button {
-    width: fit-content;
-    border: none;
-    border-radius: 10px;
-    padding: 0.8rem 1rem;
-    color: white;
-    background: #111827;
+  .identity-card,
+  .settings-card,
+  .credits-mini,
+  .usage-strip {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel);
+  }
+
+  .identity-card {
+    display: flex;
+    align-items: center;
+    gap: 17px;
+    padding: 20px;
+  }
+
+  .identity-copy {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .identity-copy h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  .identity-copy p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    color: #7c7163;
+    font-size: 12px;
+  }
+
+  .plan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 9px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: #e0c89a;
+    font-size: 11.5px;
+  }
+
+  .plan-pill span,
+  .model-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .ghost-button,
+  .save-button,
+  .segmented-control button,
+  .sign-out {
     font: inherit;
-    font-weight: 700;
     cursor: pointer;
   }
 
-  button:hover:not(:disabled) {
-    background: #374151;
+  .ghost-button {
+    border: 1px solid var(--line-strong);
+    border-radius: 9px;
+    padding: 8px 14px;
+    background: transparent;
+    color: #cdc4b8;
+    font-size: 13px;
+    font-weight: 550;
   }
 
-  button:disabled {
+  .settings-section {
+    display: grid;
+    gap: 9px;
+  }
+
+  .section-label {
+    padding: 0 2px;
+  }
+
+  .settings-card {
+    overflow: hidden;
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    border-bottom: 1px solid rgba(255, 240, 220, 0.05);
+    padding: 14px 16px;
+  }
+
+  .settings-row:last-child {
+    border-bottom: none;
+  }
+
+  .settings-row > span:first-child {
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .settings-row strong {
+    color: #e8ddcf;
+    font-size: 13.5px;
+    font-weight: 550;
+  }
+
+  .preference-row {
+    margin: 0;
+  }
+
+  .model-control {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .model-control select {
+    max-width: 160px;
+    border: none;
+    background: transparent;
+    color: #e8ddcf;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 550;
+  }
+
+  .segmented-control {
+    display: flex;
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--input);
+    padding: 3px;
+  }
+
+  .segmented-control button {
+    border: none;
+    border-radius: 7px;
+    padding: 5px 12px;
+    background: transparent;
+    color: #9a9084;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .segmented-control button.active {
+    background: var(--accent);
+    color: var(--screen);
+  }
+
+  .save-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 16px;
+  }
+
+  .save-row strong,
+  .save-row span {
+    display: block;
+  }
+
+  .save-row strong {
+    color: #e8ddcf;
+    font-size: 13.5px;
+  }
+
+  .save-row span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .save-button {
+    border: none;
+    border-radius: 9px;
+    padding: 8px 14px;
+    background: var(--accent);
+    color: var(--screen);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .save-button:disabled {
     cursor: not-allowed;
     opacity: 0.7;
   }
 
-  .success-message {
-    color: #15803d;
-    font-weight: 700;
+  .save-message {
+    margin: -4px 2px 0;
+    color: #e0c89a;
+    font-size: 12.5px;
+    font-weight: 650;
   }
 
-  .usage-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+  .credits-mini {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px 18px;
   }
 
-  .usage-stats div {
-    display: grid;
-    gap: 0.35rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
+  .credits-mini h2 {
+    margin: 0;
+    color: #e8ddcf;
+    font-size: 13.5px;
+    font-weight: 600;
   }
 
-  .usage-stats strong {
-    color: var(--text-h);
-    font-size: 1.5rem;
+  .credits-mini p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 12px;
   }
 
-  .credits-link {
-    width: fit-content;
+  .credits-mini a {
+    flex-shrink: 0;
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    border-radius: 9px;
+    padding: 9px 15px;
     color: var(--accent);
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
   }
 
-  @media (max-width: 720px) {
-    .profile-page {
-      padding: 2rem 1rem;
+  .usage-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+  }
+
+  .usage-strip div {
+    display: grid;
+    gap: 3px;
+    padding: 14px 16px;
+  }
+
+  .usage-strip div + div {
+    border-left: 1px solid rgba(255, 240, 220, 0.05);
+  }
+
+  .usage-strip span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .usage-strip strong {
+    color: #e8ddcf;
+    font-size: 15px;
+  }
+
+  .sign-out {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: #b08068;
+    font-size: 13.5px;
+    font-weight: 550;
+    padding: 2px;
+  }
+
+  @media (max-width: 820px) {
+    .profile-shell {
+      min-height: 100svh;
+      border-radius: 0;
     }
 
-    .usage-stats {
+    .sidebar {
+      display: none;
+    }
+
+    .profile-content {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .identity-card,
+    .credits-mini,
+    .settings-row,
+    .save-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .ghost-button,
+    .credits-mini a,
+    .save-button {
+      width: 100%;
+      text-align: center;
+    }
+
+    .segmented-control,
+    .model-control select {
+      width: 100%;
+    }
+
+    .usage-strip {
       grid-template-columns: 1fr;
     }
 
-    button {
-      width: 100%;
+    .usage-strip div + div {
+      border-top: 1px solid rgba(255, 240, 220, 0.05);
+      border-left: none;
     }
   }
 </style>
