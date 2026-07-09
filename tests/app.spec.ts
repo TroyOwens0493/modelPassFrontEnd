@@ -1,0 +1,46 @@
+import { expect, test } from '@playwright/test'
+
+test('home page renders the app shell and empty state', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(page.getByRole('complementary', { name: 'Primary' })).toBeVisible()
+  await expect(page.getByText('Model Pass').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Howdy' })).toBeVisible()
+  await expect(page.getByText('Please create a new chat to start working with AI.')).toBeVisible()
+})
+
+test('new chat button navigates to the chat page', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('button', { name: 'New chat' }).click()
+
+  await expect(page).toHaveURL('/chat')
+  await expect(page.getByRole('heading', { name: /Good evening, Sam/ })).toBeVisible()
+  await expect(page.getByLabel('New chat')).toBeVisible()
+})
+
+test('chat composer enables send after typing and clears after sending', async ({ page }) => {
+  await page.goto('/chat')
+
+  const messageInput = page.getByRole('textbox', { name: 'Message' })
+  const sendButton = page.getByRole('button', { name: 'Send message' })
+
+  await expect(sendButton).toBeDisabled()
+
+  await messageInput.fill('Hello Model Pass')
+  await expect(sendButton).toBeEnabled()
+
+  await sendButton.click()
+  await expect(messageInput).toHaveValue('')
+  await expect(sendButton).toBeDisabled()
+})
+
+test('chat page shows model selector and starter suggestions', async ({ page }) => {
+  await page.goto('/chat')
+
+  await expect(page.getByRole('button', { name: 'Selected model' })).toContainText('GPT-5.5')
+  await expect(page.getByRole('button', { name: 'Write a quick message' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Explain something simply' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Plan my week' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Help me decide' })).toBeVisible()
+})
