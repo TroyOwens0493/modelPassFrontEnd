@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "test:unit": "vitest run unit-tests",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
@@ -24,6 +25,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "mongodb": "^7.3.0",
-    "playwright": "^1.61.1"
+    "playwright": "^1.61.1",
+    "vitest": "^4.1.10"
   }
 }
