@@ -1,10 +1,15 @@
 <script lang="ts">
+    let { goto }: { goto: (path: string) => void } = $props();
     const recentChats = [
         "Saturday dinner party menu",
         "Explain mortgage rates simply",
         "Lisbon trip - 4 days",
         "Kids' science questions",
     ];
+
+    function openNewChat() {
+        goto("/chat");
+    }
 </script>
 
 <aside class="sidebar" aria-label="Primary">
@@ -13,14 +18,18 @@
         <div class="brand-name">Model Pass</div>
     </div>
 
-    <button class="new-chat" type="button">
+    <button class="new-chat" type="button" onclick={openNewChat}>
         <span aria-hidden="true">+</span>
         New chat
     </button>
 
     <label class="chat-search">
         <span aria-hidden="true">⌕</span>
-        <input type="search" placeholder="Search chats" aria-label="Search chats" />
+        <input
+            type="search"
+            placeholder="Search chats"
+            aria-label="Search chats"
+        />
     </label>
 
     <div class="recent">
