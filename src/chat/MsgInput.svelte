@@ -1,8 +1,13 @@
 <script lang="ts">
-    let { placeholder = "Ask anything, in plain words..." } = $props<{
+    let { placeholder = "Ask me anything..." } = $props<{
         placeholder?: string;
     }>();
     let query = $state("");
+
+    function sendMsg() {
+        console.log(query);
+        query = "";
+    }
 </script>
 
 <div class="message-input">
@@ -30,6 +35,7 @@
             type="button"
             aria-label="Send message"
             disabled={!query}
+            onclick={sendMsg}
         >
             ↑
         </button>

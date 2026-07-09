@@ -1,12 +1,12 @@
 <script lang="ts">
-    import MessageInput from "./MessageInput.svelte";
+    import MessageInput from "./MsgInput.svelte";
     import "./chat.css";
 </script>
 
 <section class="chat-welcome" aria-label="New chat">
     <div class="welcome-content">
         <h1>Good <span>evening</span>, Sam</h1>
-        <p>What would you like to figure out today?</p>
+        <p>What are we working on today?</p>
 
         <MessageInput />
 
