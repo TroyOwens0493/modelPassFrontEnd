@@ -44,3 +44,45 @@ test('chat page shows model selector and starter suggestions', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Plan my week' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Help me decide' })).toBeVisible()
 })
+
+test('credits page shows configured packages in pre-launch mode', async ({ page }) => {
+  await page.route('**/api/billing', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        balance: {
+          creditBalance: 0,
+          creditsUsed: 0,
+          tokensUsed: 0,
+        },
+        packages: [
+          {
+            id: 'starter',
+            name: 'Starter',
+            credits: 100,
+            price: '$5.00',
+            highlight: false,
+            checkoutAvailable: false,
+          },
+          {
+            id: 'plus',
+            name: 'Plus',
+            credits: 500,
+            price: '$20.00',
+            highlight: true,
+            checkoutAvailable: false,
+          },
+        ],
+        transactions: [],
+        fulfillmentEnabled: false,
+      }),
+    })
+  })
+
+  await page.goto('/credits')
+
+  await expect(page.getByRole('heading', { name: 'Credits', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose a credit package' })).toBeVisible()
+  await expect(page.getByText('Checkout setup in progress')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Buy Starter package' })).toBeDisabled()
+})

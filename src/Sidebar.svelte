@@ -39,7 +39,12 @@
         {/each}
     </div>
 
-    <button class="profile-summary" type="button">
+    <button
+        class="profile-summary"
+        type="button"
+        onclick={() => goto("/credits")}
+        aria-label="Manage credits"
+    >
         <span class="avatar">SR</span>
         <span class="profile-copy">
             <span class="profile-name">Sam Rivera</span>
