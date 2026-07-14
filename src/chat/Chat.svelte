@@ -4,12 +4,42 @@
     import type { ChatMessage } from "./types";
     import "./chat.css";
 
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
 
+    async function getResponse(history: ChatMessage[]) {
+        const response = await fetch(`${BASE_URL}/chats/response`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                messages: history,
+                model: "your-openrouter-model-id",
+            }),
+        });
+
+        const body = await response.json();
+
+        if (!response.ok) {
+            throw new Error(body.error ?? "Failed to get model response");
+        }
+
+        return body;
+    }
+
     /** Adds message to history locally, and requests message from server. */
-    function handleSend(message: ChatMessage) {
+    async function handleSend(message: ChatMessage) {
         chatHistory.push(message);
+        try {
+            const res = await getResponse({ ...chatHistory });
+            console.log("res", res);
+        } catch (error) {
+            console.error(error);
+        }
     }
 </script>
 
