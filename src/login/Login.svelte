@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { getLoginUrl } from '../billing/api';
+
   function goToSignUp() {
     window.location.assign('/signup');
   }
 
   function startLogin() {
-    window.location.href = '/auth/login';
+    window.location.href = getLoginUrl();
   }
 </script>
 
