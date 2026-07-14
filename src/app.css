@@ -249,6 +249,64 @@ button {
   font-size: 15.5px;
 }
 
+.auth-shell {
+  width: 100%;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(100%, 440px);
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 240, 220, 0.05), rgba(255, 240, 220, 0.02));
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+}
+
+.auth-header {
+  margin-bottom: 24px;
+}
+
+.auth-header h1 {
+  margin: 0 0 8px;
+  color: #f2ece4;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.auth-header p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.auth-button {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: #1a1714;
+  font-weight: 700;
+}
+
+.auth-footer {
+  margin: 16px 0 0;
+  color: var(--soft);
+  text-align: center;
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     display: block;
@@ -267,6 +325,10 @@ button {
 
   .app-main {
     min-height: 360px;
+    padding: 24px;
+  }
+
+  .auth-card {
     padding: 24px;
   }
 }
