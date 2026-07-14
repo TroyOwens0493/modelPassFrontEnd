@@ -1,7 +1,15 @@
 <script lang="ts">
     import MessageInput from "./MsgInput.svelte";
+    import type { ChatMessage } from "./types";
     import "./chat.css";
-    const isChatting = $state(false);
+
+    const chatHistory = $state<ChatMessage[]>([]);
+    const isChatting = $derived(chatHistory.length > 0);
+
+    /** Adds a newly submitted message to this chat. */
+    function handleSend(message: ChatMessage) {
+        chatHistory.push(message);
+    }
 </script>
 
 <section class="chat-welcome" aria-label="New chat">
@@ -11,7 +19,7 @@
             <p>What are we working on today?</p>
         {/if}
 
-        <MessageInput />
+        <MessageInput onSend={handleSend} />
 
         {#if !isChatting}
             <div class="suggestions" aria-label="Suggestions">

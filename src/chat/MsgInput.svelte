@@ -1,11 +1,24 @@
 <script lang="ts">
-    let { placeholder = "Ask me anything..." } = $props<{
-        placeholder?: string;
+    import type { ChatMessage } from "./types";
+
+    let { onSend } = $props<{
+        onSend: (message: ChatMessage) => void;
     }>();
+
+    const placeholder = "Ask me anything...";
     let query = $state("");
 
+    /** Sends a non-empty user message and clears the composer. */
     function sendMsg() {
-        console.log(query);
+        const text = query.trim();
+        if (!text) return;
+
+        const newMsg: ChatMessage = {
+            timestamp: new Date(),
+            role: "user",
+            text
+        };
+        onSend(newMsg);
         query = "";
     }
 </script>
@@ -34,7 +47,7 @@
             class="send-button"
             type="button"
             aria-label="Send message"
-            disabled={!query}
+            disabled={!query.trim()}
             onclick={sendMsg}
         >
             ↑
