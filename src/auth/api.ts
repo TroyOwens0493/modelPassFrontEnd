@@ -7,3 +7,7 @@ export function getLoginUrl() {
 export function getSignUpUrl() {
   return getApiUrl("/auth/signup");
 }
+
+export function getLogoutUrl() {
+  return getApiUrl("/auth/logout");
+}
