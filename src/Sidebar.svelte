@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { profileStore, getDisplayName, getInitials } from "./stores/profile";
+
     let { goto }: { goto: (path: string) => void } = $props();
     const recentChats = [
         "Saturday dinner party menu",
@@ -6,6 +8,10 @@
         "Lisbon trip - 4 days",
         "Kids' science questions",
     ];
+
+    let profile = $derived($profileStore);
+    let displayName = $derived(getDisplayName(profile));
+    let initials = $derived(getInitials(profile));
 
     function openNewChat() {
         goto("/chat");
@@ -45,9 +51,9 @@
         onclick={() => goto("/profile")}
         aria-label="Open profile"
     >
-        <span class="avatar">SR</span>
+        <span class="avatar">{initials}</span>
         <span class="profile-copy">
-            <span class="profile-name">Sam Rivera</span>
+            <span class="profile-name">{displayName}</span>
             <span class="profile-credits">1,240 credits left</span>
         </span>
     </button>
