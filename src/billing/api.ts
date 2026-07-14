@@ -1,3 +1,5 @@
+import { getApiUrl } from "../api";
+
 export type CreditPackage = {
   id: string;
   name: string;
@@ -37,8 +39,6 @@ export class BillingApiError extends Error {
   }
 }
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
-
 async function parseResponse<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({}));
 
@@ -54,7 +54,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getBillingSummary() {
-  const response = await fetch(`${apiBaseUrl}/api/billing`, {
+  const response = await fetch(getApiUrl("/api/billing"), {
     credentials: "include",
   });
 
@@ -62,7 +62,7 @@ export async function getBillingSummary() {
 }
 
 export async function createCheckoutSession(packageId: string) {
-  const response = await fetch(`${apiBaseUrl}/api/billing/checkout`, {
+  const response = await fetch(getApiUrl("/api/billing/checkout"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -72,8 +72,4 @@ export async function createCheckoutSession(packageId: string) {
   });
 
   return parseResponse<{ checkoutUrl: string }>(response);
-}
-
-export function getLoginUrl() {
-  return `${apiBaseUrl}/auth/login`;
 }

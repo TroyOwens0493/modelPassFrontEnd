@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { getLogoutUrl } from '../auth/api';
+
   type UserProfile = {
     id: string;
     email: string;
@@ -105,13 +107,8 @@
     }
   }
 
-  async function handleLogout() {
-    try {
-      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      window.location.assign('/login');
-    } catch {
-      window.location.assign('/login');
-    }
+  function logout() {
+    window.location.replace(getLogoutUrl());
   }
 
   loadProfile();
@@ -251,7 +248,7 @@
         <p class="save-message">{errorMessage}</p>
       {/if}
 
-      <button class="sign-out" type="button" on:click={handleLogout}>Sign out</button>
+      <button class="sign-out" type="button" on:click={logout}>Sign out</button>
     </div>
   </main>
 </section>

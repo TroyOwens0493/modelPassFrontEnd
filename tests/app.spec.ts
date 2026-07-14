@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test'
 
+for (const routeName of ['login', 'signup']) {
+  test(`${routeName} route redirects to the backend WorkOS endpoint`, async ({ page }) => {
+    await page.route(`**/auth/${routeName}`, async (route) => {
+      await route.fulfill({ contentType: 'text/html', body: `WorkOS ${routeName}` })
+    })
+
+    await page.goto(`/${routeName}`)
+
+    await expect(page).toHaveURL(new RegExp(`/auth/${routeName}$`))
+  })
+}
+
 test('home page renders the app shell and empty state', async ({ page }) => {
   await page.goto('/')
 
@@ -7,6 +19,17 @@ test('home page renders the app shell and empty state', async ({ page }) => {
   await expect(page.getByText('Model Pass').first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Howdy' })).toBeVisible()
   await expect(page.getByText('Please create a new chat to start working with AI.')).toBeVisible()
+})
+
+test('profile sign out redirects to the backend logout endpoint', async ({ page }) => {
+  await page.route('**/auth/logout', async (route) => {
+    await route.fulfill({ contentType: 'text/html', body: 'WorkOS logout' })
+  })
+
+  await page.goto('/profile')
+  await page.getByRole('button', { name: 'Sign out' }).click()
+
+  await expect(page).toHaveURL(/\/auth\/logout$/)
 })
 
 test('new chat button navigates to the chat page', async ({ page }) => {
