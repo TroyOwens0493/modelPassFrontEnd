@@ -14,8 +14,6 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
-      '/api': 'http://localhost:3000',
-      '/auth': 'http://localhost:3000',
     },
   },
 })

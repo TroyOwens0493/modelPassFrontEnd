@@ -161,8 +161,9 @@
 
       {#if !summary.fulfillmentEnabled}
         <p class="setup-note">
-          Product cards are ready. Purchases stay disabled until Polar credentials
-          and secure payment fulfillment are configured.
+          {summary.packages.some((creditPackage) => creditPackage.checkoutAvailable)
+            ? "Sandbox checkout is available. Test purchases will not add credits until webhook fulfillment is configured."
+            : "Product cards are ready. Add Polar sandbox credentials and product IDs to enable test checkout."}
         </p>
       {/if}
     </section>
