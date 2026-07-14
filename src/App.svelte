@@ -3,8 +3,7 @@
     import Sidebar from "./Sidebar.svelte";
     import Home from "./Home.svelte";
     import Chat from "./chat/Chat.svelte";
-    import Login from "./login/Login.svelte";
-    import SignUp from "./signup/SignUp.svelte";
+    import AuthRedirect from "./auth/AuthRedirect.svelte";
     import Credits from "./billing/Credits.svelte";
     import UserProfile from "./pages/UserProfile.svelte";
     import { createRouter } from "./router";
@@ -13,13 +12,11 @@
     const router = createRouter([
         { path: "/", component: Home },
         { path: "/chat", component: Chat },
-        { path: "/login", component: Login },
-        { path: "/signup", component: SignUp },
+        { path: "/login", component: AuthRedirect },
+        { path: "/signup", component: AuthRedirect },
         { path: "/auth/callback", component: Home },
         { path: "/credits", component: Credits },
         { path: "/profile", component: UserProfile },
-        // { path: "/signup", component: SignUp },
-        // { path: "/login", component: Login },
         { path: "*", component: Home },
     ]);
     const currentRoute = router.current;

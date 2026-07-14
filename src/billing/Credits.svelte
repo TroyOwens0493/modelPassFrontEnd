@@ -4,9 +4,9 @@
     BillingApiError,
     createCheckoutSession,
     getBillingSummary,
-    getLoginUrl,
     type BillingSummary,
   } from "./api";
+  import { getLoginUrl } from "../auth/api";
 
   let summary = $state<BillingSummary | null>(null);
   let loading = $state(true);

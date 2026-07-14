@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test'
 
+for (const routeName of ['login', 'signup']) {
+  test(`${routeName} route redirects to the backend WorkOS endpoint`, async ({ page }) => {
+    await page.route(`**/auth/${routeName}`, async (route) => {
+      await route.fulfill({ contentType: 'text/html', body: `WorkOS ${routeName}` })
+    })
+
+    await page.goto(`/${routeName}`)
+
+    await expect(page).toHaveURL(`/auth/${routeName}`)
+  })
+}
+
 test('home page renders the app shell and empty state', async ({ page }) => {
   await page.goto('/')
 
