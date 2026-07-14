@@ -42,8 +42,8 @@
     <button
         class="profile-summary"
         type="button"
-        onclick={() => goto("/credits")}
-        aria-label="Manage credits"
+        onclick={() => goto("/profile")}
+        aria-label="Open profile"
     >
         <span class="avatar">SR</span>
         <span class="profile-copy">

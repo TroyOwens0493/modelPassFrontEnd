@@ -222,6 +222,19 @@ button {
   align-items: start;
 }
 
+.app-main.profile-route {
+  display: block;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.app-main.profile-route .profile-shell {
+  width: 100%;
+  min-height: 100vh;
+  border: 0;
+  border-radius: 0;
+}
+
 .empty-panel {
   width: min(100%, 600px);
   text-align: center;
