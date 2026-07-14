@@ -1,24 +1,21 @@
 <script lang="ts">
-  const user = {
-    name: 'Sam Rivera',
-    email: 'sam@rivera.co',
-    initials: 'SR',
-    createdAt: '2025',
-  }
-
-  const usage = {
-    creditBalance: 1240,
-    creditsUsed: 3760,
-    tokensUsed: 12000,
-    estimatedMessages: 400,
-  }
+  type UserProfile = {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    name?: string;
+    profilePictureUrl?: string | null;
+    replyStyle?: string;
+    defaultModel?: string;
+  };
 
   const recentChats = [
     'Saturday dinner party menu',
     'Explain mortgage rates simply',
     'Lisbon trip - 4 days',
     "Kids' science questions",
-  ]
+  ];
 
   const models = [
     {
@@ -36,29 +33,88 @@
       name: 'Gemini Flash',
       description: 'Speedy and great with long documents',
     },
-  ]
+  ];
 
   const replyStyles = [
-    { value: 'plain', label: 'Plain & friendly' },
+    { value: 'balanced', label: 'Balanced' },
+    { value: 'concise', label: 'Concise' },
     { value: 'detailed', label: 'Detailed' },
-  ]
+    { value: 'creative', label: 'Creative' },
+  ];
 
-  let defaultModel = models[0].slug
-  let replyStyle = replyStyles[0].value
-  let savedMessage = ''
-  let isSaving = false
+  let user: UserProfile | null = null;
+  let defaultModel = models[0].slug;
+  let replyStyle = replyStyles[0].value;
+  let savedMessage = '';
+  let isSaving = false;
+  let isLoading = true;
+  let errorMessage = '';
 
-  $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0]
+  $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0];
+  $: displayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
+  $: initials = (displayName || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
-  function savePreferences() {
-    isSaving = true
-    savedMessage = ''
+  async function loadProfile() {
+    isLoading = true;
+    errorMessage = '';
 
-    window.setTimeout(() => {
-      isSaving = false
-      savedMessage = 'Preferences saved'
-    }, 500)
+    try {
+      const response = await fetch('/auth/me', { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Not signed in');
+      }
+
+      const payload = await response.json();
+      user = payload.user;
+      defaultModel = user?.defaultModel ?? models[0].slug;
+      replyStyle = user?.replyStyle ?? replyStyles[0].value;
+    } catch {
+      errorMessage = 'We could not load your profile. Please sign in again.';
+      user = null;
+    } finally {
+      isLoading = false;
+    }
   }
+
+  async function savePreferences() {
+    if (!user) return;
+
+    isSaving = true;
+    savedMessage = '';
+    errorMessage = '';
+
+    try {
+      const response = await fetch('/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: displayName, replyStyle, defaultModel }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to save');
+      }
+
+      const payload = await response.json();
+      user = payload.user;
+      savedMessage = 'Preferences saved';
+    } catch {
+      errorMessage = 'We could not save your preferences.';
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      window.location.assign('/login');
+    } catch {
+      window.location.assign('/login');
+    }
+  }
+
+  loadProfile();
 </script>
 
 <section class="profile-shell">
@@ -83,10 +139,10 @@
     </nav>
 
     <div class="sidebar-user" aria-current="page">
-      <div class="avatar small">{user.initials}</div>
+      <div class="avatar small">{initials}</div>
       <div>
-        <strong>{user.name}</strong>
-        <span>{usage.creditBalance.toLocaleString()} credits left</span>
+        <strong>{displayName}</strong>
+        <span>1,240 credits left</span>
       </div>
     </div>
   </aside>
@@ -98,16 +154,15 @@
 
     <div class="profile-content">
       <section class="identity-card" aria-label="Profile summary">
-        <div class="avatar large">{user.initials}</div>
+        <div class="avatar large">{initials}</div>
         <div class="identity-copy">
-          <h2>{user.name}</h2>
-          <p>{user.email}</p>
+          <h2>{displayName}</h2>
+          <p>{user?.email ?? 'Loading profile...'}</p>
           <div class="meta-row">
             <span class="plan-pill"><span></span>Pay-as-you-go</span>
-            <span>Member since {user.createdAt}</span>
+            <span>{isLoading ? 'Loading account...' : 'Account active'}</span>
           </div>
         </div>
-        <button class="ghost-button" type="button">Edit</button>
       </section>
 
       <section class="settings-section">
@@ -115,15 +170,15 @@
         <div class="settings-card">
           <div class="settings-row">
             <span>Name</span>
-            <strong>{user.name}</strong>
+            <strong>{displayName}</strong>
           </div>
           <div class="settings-row">
             <span>Email</span>
-            <strong>{user.email}</strong>
+            <strong>{user?.email ?? 'Loading...'}</strong>
           </div>
           <div class="settings-row">
-            <span>Password</span>
-            <strong>••••••••</strong>
+            <span>Account</span>
+            <strong>WorkOS managed</strong>
           </div>
         </div>
       </section>
@@ -175,8 +230,8 @@
 
       <section class="credits-mini">
         <div>
-          <h2>{usage.creditBalance.toLocaleString()} credits left</h2>
-          <p>About {usage.estimatedMessages.toLocaleString()} everyday messages</p>
+          <h2>1,240 credits left</h2>
+          <p>About 400 everyday messages</p>
         </div>
         <a href="/credits">Manage credits</a>
       </section>
@@ -184,15 +239,19 @@
       <section class="usage-strip" aria-label="Usage summary">
         <div>
           <span>Credits used</span>
-          <strong>{usage.creditsUsed.toLocaleString()}</strong>
+          <strong>3,760</strong>
         </div>
         <div>
           <span>Tokens used</span>
-          <strong>{usage.tokensUsed.toLocaleString()}</strong>
+          <strong>12,000</strong>
         </div>
       </section>
 
-      <button class="sign-out" type="button">Sign out</button>
+      {#if errorMessage}
+        <p class="save-message">{errorMessage}</p>
+      {/if}
+
+      <button class="sign-out" type="button" on:click={handleLogout}>Sign out</button>
     </div>
   </main>
 </section>
