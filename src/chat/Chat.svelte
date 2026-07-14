@@ -9,7 +9,7 @@
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
 
-    async function getResponse(history: ChatMessage[]) {
+    async function streamResponse(history: ChatMessage[]) {
         const response = await fetch(`${BASE_URL}/chats/response`, {
             method: "POST",
             credentials: "include",
@@ -18,25 +18,50 @@
             },
             body: JSON.stringify({
                 messages: history,
-                model: "your-openrouter-model-id",
+                model: "openai/gpt-4o-mini",
             }),
         });
 
-        const body = await response.json();
-
         if (!response.ok) {
+            const contentType = response.headers.get("content-type") ?? "";
+            const body = contentType.includes("application/json")
+                ? await response.json()
+                : { error: await response.text() };
+
             throw new Error(body.error ?? "Failed to get model response");
         }
 
-        return body;
+        if (!response.body) {
+            throw new Error("Streaming is unavailable");
+        }
+
+        chatHistory.push({
+            role: "model",
+            text: "",
+            timestamp: new Date(),
+        });
+        const modelMessage = chatHistory[chatHistory.length - 1];
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            modelMessage.text += decoder.decode(value, { stream: true });
+        }
+
+        modelMessage.text += decoder.decode();
     }
 
     /** Adds message to history locally, and requests message from server. */
     async function handleSend(message: ChatMessage) {
         chatHistory.push(message);
         try {
-            const res = await getResponse({ ...chatHistory });
-            console.log("res", res);
+            await streamResponse([...chatHistory]);
         } catch (error) {
             console.error(error);
         }
