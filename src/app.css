@@ -218,6 +218,10 @@ button {
   padding: 32px;
 }
 
+.app-main.page-route {
+  align-items: start;
+}
+
 .empty-panel {
   width: min(100%, 600px);
   text-align: center;

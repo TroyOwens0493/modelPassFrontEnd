@@ -4,6 +4,7 @@
     import Chat from "./chat/Chat.svelte";
     import Login from "./login/Login.svelte";
     import SignUp from "./signup/SignUp.svelte";
+    import Credits from "./billing/Credits.svelte";
     import { createRouter } from "./router";
 
     const router = createRouter([
@@ -12,6 +13,9 @@
         { path: "/login", component: Login },
         { path: "/signup", component: SignUp },
         { path: "/auth/callback", component: Home },
+        { path: "/credits", component: Credits },
+        // { path: "/signup", component: SignUp },
+        // { path: "/login", component: Login },
         { path: "*", component: Home },
     ]);
     const currentRoute = router.current;
@@ -24,7 +28,11 @@
         <Sidebar goto={router.goto}/>
     {/if}
 
-    <main class="app-main" aria-label="Model Pass app content">
+    <main
+        class="app-main"
+        class:page-route={$currentRoute === "/credits"}
+        aria-label="Model Pass app content"
+    >
         <CurrentRoute />
     </main>
 </div>
