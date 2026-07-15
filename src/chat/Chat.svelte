@@ -3,6 +3,7 @@
     import MessageHistory from "./MsgHistory.svelte";
     import type { ChatMessage } from "./types";
     import "./chat.css";
+    import { refreshBilling } from "../stores/billing";
 
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -62,6 +63,7 @@
         chatHistory.push(message);
         try {
             await streamResponse([...chatHistory]);
+            await refreshBilling();
         } catch (error) {
             console.error(error);
         }

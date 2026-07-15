@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getLogoutUrl } from '../auth/api';
+  import { billingStore, loadBilling } from '../stores/billing';
 
   type UserProfile = {
     id: string;
@@ -55,6 +56,12 @@
   $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0];
   $: displayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
   $: initials = (displayName || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  $: billingBalance = $billingStore.summary?.balance;
+  $: creditLabel = $billingStore.loading
+    ? 'Loading credits…'
+    : billingBalance
+      ? `${billingBalance.creditBalance.toLocaleString()} credits left`
+      : 'Credits unavailable';
 
   async function loadProfile() {
     isLoading = true;
@@ -112,6 +119,7 @@
   }
 
   loadProfile();
+  void loadBilling();
 </script>
 
 <section class="profile-shell">
@@ -139,7 +147,7 @@
       <div class="avatar small">{initials}</div>
       <div>
         <strong>{displayName}</strong>
-        <span>1,240 credits left</span>
+        <span>{creditLabel}</span>
       </div>
     </div>
   </aside>
@@ -227,8 +235,8 @@
 
       <section class="credits-mini">
         <div>
-          <h2>1,240 credits left</h2>
-          <p>About 400 everyday messages</p>
+          <h2>{creditLabel}</h2>
+          <p>Available for usage across supported models</p>
         </div>
         <a href="/credits">Manage credits</a>
       </section>
@@ -236,11 +244,11 @@
       <section class="usage-strip" aria-label="Usage summary">
         <div>
           <span>Credits used</span>
-          <strong>3,760</strong>
+          <strong>{billingBalance ? billingBalance.creditsUsed.toLocaleString() : '—'}</strong>
         </div>
         <div>
           <span>Tokens used</span>
-          <strong>12,000</strong>
+          <strong>{billingBalance ? billingBalance.tokensUsed.toLocaleString() : '—'}</strong>
         </div>
       </section>
 

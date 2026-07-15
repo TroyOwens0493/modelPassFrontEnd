@@ -1,4 +1,79 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+const billingSummary = {
+  balance: {
+    creditBalance: 475,
+    creditsUsed: 25,
+    tokensUsed: 12_000,
+  },
+  packages: [
+    {
+      id: 'starter',
+      name: 'Starter',
+      credits: 100,
+      price: '$5.00',
+      highlight: false,
+      checkoutAvailable: true,
+    },
+    {
+      id: 'plus',
+      name: 'Plus',
+      credits: 500,
+      price: '$20.00',
+      highlight: true,
+      checkoutAvailable: true,
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      credits: 1_200,
+      price: '$40.00',
+      highlight: false,
+      checkoutAvailable: true,
+    },
+  ],
+  transactions: [
+    {
+      id: 'transaction_1',
+      type: 'purchase',
+      credits: 500,
+      balanceAfter: 500,
+      description: 'Plus credit package',
+      createdAt: '2026-07-15T12:00:00.000Z',
+    },
+    {
+      id: 'transaction_2',
+      type: 'usage',
+      credits: -25,
+      balanceAfter: 475,
+      description: 'GPT response',
+      createdAt: '2026-07-15T12:05:00.000Z',
+    },
+  ],
+  fulfillmentEnabled: true,
+}
+
+async function mockAuthenticatedBilling(page: Page) {
+  await page.route('**/auth/me', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: {
+          id: 'user_123',
+          email: 'sam@example.com',
+          firstName: 'Sam',
+          lastName: 'Rivera',
+        },
+      }),
+    })
+  })
+  await page.route('**/api/billing', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(billingSummary),
+    })
+  })
+}
 
 for (const routeName of ['login', 'signup']) {
   test(`${routeName} route redirects to the backend WorkOS endpoint`, async ({ page }) => {
@@ -68,44 +143,25 @@ test('chat page shows model selector and starter suggestions', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Help me decide' })).toBeVisible()
 })
 
-test('credits page shows configured packages in pre-launch mode', async ({ page }) => {
-  await page.route('**/api/billing', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        balance: {
-          creditBalance: 0,
-          creditsUsed: 0,
-          tokensUsed: 0,
-        },
-        packages: [
-          {
-            id: 'starter',
-            name: 'Starter',
-            credits: 100,
-            price: '$5.00',
-            highlight: false,
-            checkoutAvailable: false,
-          },
-          {
-            id: 'plus',
-            name: 'Plus',
-            credits: 500,
-            price: '$20.00',
-            highlight: true,
-            checkoutAvailable: false,
-          },
-        ],
-        transactions: [],
-        fulfillmentEnabled: false,
-      }),
-    })
-  })
+test('credits page and sidebar show persisted accounting values', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
 
   await page.goto('/credits')
 
   await expect(page.getByRole('heading', { name: 'Credits', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Choose a credit package' })).toBeVisible()
-  await expect(page.getByText('Checkout setup in progress')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Buy Starter package' })).toBeDisabled()
+  await expect(page.getByText('475 credits left')).toBeVisible()
+  await expect(page.getByText('Plus credit package')).toBeVisible()
+  await expect(page.getByText('GPT response')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Buy Starter package' })).toBeEnabled()
+})
+
+test('profile uses the same dynamic balance and usage totals', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+
+  await page.goto('/profile')
+
+  await expect(page.getByText('475 credits left')).toHaveCount(2)
+  await expect(page.getByText('25', { exact: true })).toBeVisible()
+  await expect(page.getByText('12,000', { exact: true })).toBeVisible()
 })

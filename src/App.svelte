@@ -8,6 +8,7 @@
     import UserProfile from "./pages/UserProfile.svelte";
     import { createRouter } from "./router";
     import { profileStore } from "./stores/profile";
+    import { clearBilling, loadBilling } from "./stores/billing";
 
     const router = createRouter([
         { path: "/", component: Home },
@@ -33,11 +34,14 @@
             if (response.ok) {
                 const payload = await response.json();
                 profileStore.set(payload.user ?? null);
+                await loadBilling();
             } else {
                 profileStore.set(null);
+                clearBilling();
             }
         } catch {
             profileStore.set(null);
+            clearBilling();
         }
     });
 </script>

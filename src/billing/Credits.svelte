@@ -3,39 +3,20 @@
   import {
     BillingApiError,
     createCheckoutSession,
-    getBillingSummary,
-    type BillingSummary,
   } from "./api";
   import { getLoginUrl } from "../auth/api";
+  import { billingStore, refreshBilling } from "../stores/billing";
 
-  let summary = $state<BillingSummary | null>(null);
-  let loading = $state(true);
-  let unauthenticated = $state(false);
-  let errorMessage = $state("");
+  let summary = $derived($billingStore.summary);
+  let loading = $derived($billingStore.loading);
+  let unauthenticated = $derived($billingStore.unauthenticated);
+  let errorMessage = $derived($billingStore.error ?? "");
   let checkoutError = $state("");
   let purchasingPackageId = $state<string | null>(null);
 
   const checkoutStatus = new URLSearchParams(window.location.search).get(
     "checkout",
   );
-
-  async function loadBilling() {
-    loading = true;
-    errorMessage = "";
-    unauthenticated = false;
-
-    try {
-      summary = await getBillingSummary();
-    } catch (error) {
-      if (error instanceof BillingApiError && error.status === 401) {
-        unauthenticated = true;
-      } else {
-        errorMessage = "We could not load your billing information.";
-      }
-    } finally {
-      loading = false;
-    }
-  }
 
   async function buyPackage(packageId: string) {
     if (purchasingPackageId) return;
@@ -61,7 +42,34 @@
     }).format(new Date(value));
   }
 
-  onMount(loadBilling);
+  onMount(() => {
+    void refreshBilling();
+
+    if (checkoutStatus !== "success") {
+      return;
+    }
+
+    let attempts = 0;
+    let cancelled = false;
+    let timeout: number;
+    const poll = async () => {
+      await refreshBilling();
+
+      if (cancelled || attempts >= 5) {
+        return;
+      }
+
+      timeout = window.setTimeout(poll, Math.min(1_000 * 2 ** attempts, 8_000));
+      attempts += 1;
+    };
+
+    timeout = window.setTimeout(poll, 1_000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  });
 </script>
 
 <svelte:head>
@@ -80,7 +88,10 @@
 
   {#if checkoutStatus === "success"}
     <div class="status-message success" role="status">
-      Payment received. Your credits may take a moment to appear.
+      <span>Payment received. Your credits may take a moment to appear.</span>
+      <button type="button" onclick={() => refreshBilling()}>
+        Refresh balance
+      </button>
     </div>
   {:else if checkoutStatus === "canceled"}
     <div class="status-message" role="status">
@@ -100,7 +111,7 @@
     <div class="state-card" role="alert">
       <h2>Billing is temporarily unavailable</h2>
       <p>{errorMessage}</p>
-      <button type="button" onclick={loadBilling}>Try again</button>
+      <button type="button" onclick={() => refreshBilling()}>Try again</button>
     </div>
   {:else if summary}
     <section class="balance-card" aria-label="Credit balance">
@@ -256,6 +267,10 @@
   }
 
   .status-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     padding: 14px 18px;
     color: var(--soft);
   }
@@ -263,6 +278,15 @@
   .status-message.success {
     border-color: rgba(232, 160, 77, 0.32);
     color: #f0c48f;
+  }
+
+  .status-message button {
+    flex-shrink: 0;
+    border: 1px solid rgba(232, 160, 77, 0.35);
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: transparent;
+    color: inherit;
   }
 
   .state-card {
