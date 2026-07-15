@@ -156,6 +156,20 @@ test('credits page and sidebar show persisted accounting values', async ({ page 
   await expect(page.getByRole('button', { name: 'Buy Starter package' })).toBeEnabled()
 })
 
+test('signed-out credits page preserves the billing unauthenticated state', async ({ page }) => {
+  await page.route('**/auth/me', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+  })
+  await page.route('**/api/billing', async (route) => {
+    await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+  })
+
+  await page.goto('/credits')
+
+  await expect(page.getByRole('heading', { name: 'Sign in to manage credits' })).toBeVisible()
+})
+
 test('profile uses the same dynamic balance and usage totals', async ({ page }) => {
   await mockAuthenticatedBilling(page)
 

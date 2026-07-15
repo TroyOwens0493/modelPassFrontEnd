@@ -28,7 +28,7 @@ let requestGeneration = 0;
 export function clearBilling() {
   requestGeneration += 1;
   pendingLoad = null;
-  billingStore.set(initialState);
+  billingStore.set({ ...initialState, unauthenticated: true });
 }
 
 export async function loadBilling(force = false) {
