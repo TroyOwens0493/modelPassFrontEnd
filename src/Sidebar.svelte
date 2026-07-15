@@ -1,5 +1,6 @@
 <script lang="ts">
     import { profileStore, getDisplayName, getInitials } from "./stores/profile";
+    import { billingStore } from "./stores/billing";
 
     let { goto }: { goto: (path: string) => void } = $props();
     const recentChats = [
@@ -12,6 +13,15 @@
     let profile = $derived($profileStore);
     let displayName = $derived(getDisplayName(profile));
     let initials = $derived(getInitials(profile));
+    let creditLabel = $derived(
+        $billingStore.loading
+            ? "Loading credits…"
+            : $billingStore.summary
+                ? `${$billingStore.summary.balance.creditBalance.toLocaleString()} credits left`
+                : $billingStore.unauthenticated
+                    ? "Sign in to view credits"
+                    : "Credits unavailable",
+    );
 
     function openNewChat() {
         goto("/chat");
@@ -54,7 +64,7 @@
         <span class="avatar">{initials}</span>
         <span class="profile-copy">
             <span class="profile-name">{displayName}</span>
-            <span class="profile-credits">1,240 credits left</span>
+            <span class="profile-credits">{creditLabel}</span>
         </span>
     </button>
 </aside>

@@ -3,11 +3,21 @@
     import MessageHistory from "./MsgHistory.svelte";
     import type { ChatMessage } from "./types";
     import "./chat.css";
+    import { refreshBilling } from "../stores/billing";
 
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
+    let flashMessage = $state("");
+
+    function isInsufficientCreditsError(error: unknown) {
+        return (
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "INSUFFICIENT_CREDITS"
+        );
+    }
 
     async function streamResponse(history: ChatMessage[]) {
         const response = await fetch(`${BASE_URL}/chats/response`, {
@@ -28,7 +38,9 @@
                 ? await response.json()
                 : { error: await response.text() };
 
-            throw new Error(body.error ?? "Failed to get model response");
+            const error = new Error(body.error ?? "Failed to get model response");
+            Object.assign(error, { code: body.code });
+            throw error;
         }
 
         if (!response.body) {
@@ -59,10 +71,17 @@
 
     /** Adds message to history locally, and requests message from server. */
     async function handleSend(message: ChatMessage) {
+        flashMessage = "";
         chatHistory.push(message);
         try {
             await streamResponse([...chatHistory]);
+            await refreshBilling();
         } catch (error) {
+            if (isInsufficientCreditsError(error)) {
+                flashMessage = "You don't have enough credits. Add credits to continue.";
+                return;
+            }
+
             console.error(error);
         }
     }
@@ -79,6 +98,10 @@
         {/if}
 
         <MessageInput onSend={handleSend} />
+
+        {#if flashMessage}
+            <p class="chat-flash" role="alert">{flashMessage}</p>
+        {/if}
 
         {#if !isChatting}
             <div class="suggestions" aria-label="Suggestions">
