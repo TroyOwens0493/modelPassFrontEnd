@@ -13,6 +13,11 @@
   align-items: center;
 }
 
+.welcome-content:not(:has(.suggestions)) {
+  align-self: stretch;
+  justify-content: flex-end;
+}
+
 .welcome-content h1 {
   margin: 0 0 8px;
   color: #f2ece4;
