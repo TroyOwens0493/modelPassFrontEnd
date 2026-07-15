@@ -1,7 +1,8 @@
 <script lang="ts">
-    let { text, timestamp } = $props<{
+    let { text, timestamp, modelName } = $props<{
         text: string;
         timestamp: Date;
+        modelName: string;
     }>();
 
     const timeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -14,7 +15,7 @@
     <div class="model-mark" aria-hidden="true">M</div>
     <div class="message-content">
         <div class="message-header">
-            <strong>Model</strong>
+            <strong>{modelName}</strong>
             <time datetime={timestamp.toISOString()}>
                 {timeFormatter.format(timestamp)}
             </time>

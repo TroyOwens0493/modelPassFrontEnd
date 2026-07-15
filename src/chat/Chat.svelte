@@ -6,6 +6,10 @@
     import { refreshBilling } from "../stores/billing";
 
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+    const MODEL = {
+        slug: "openai/gpt-4o-mini",
+        name: "GPT-4o mini",
+    };
 
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
@@ -19,7 +23,7 @@
             },
             body: JSON.stringify({
                 messages: history,
-                model: "openai/gpt-4o-mini",
+                model: MODEL.slug,
             }),
         });
 
@@ -77,7 +81,7 @@
             <p>What are we working on today?</p>
         {/if}
         {#if isChatting}
-            <MessageHistory {chatHistory} />
+            <MessageHistory {chatHistory} modelName={MODEL.name} />
         {/if}
 
         <MessageInput onSend={handleSend} />

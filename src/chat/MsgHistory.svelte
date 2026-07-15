@@ -3,8 +3,9 @@
     import type { ChatMessage } from "./types";
     import UserMsg from "./UserMsg.svelte";
 
-    let { chatHistory } = $props<{
+    let { chatHistory, modelName } = $props<{
         chatHistory: ChatMessage[];
+        modelName: string;
     }>();
 </script>
 
@@ -13,7 +14,7 @@
         {#if message.role === "user"}
             <UserMsg text={message.text} timestamp={message.timestamp} />
         {:else}
-            <ModelMsg text={message.text} timestamp={message.timestamp} />
+            <ModelMsg text={message.text} timestamp={message.timestamp} {modelName} />
         {/if}
     {/each}
 </section>
