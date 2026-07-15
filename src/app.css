@@ -154,9 +154,21 @@ button {
   white-space: nowrap;
 }
 
+.recent-empty {
+  margin: 0;
+  padding: 9px 11px;
+  color: #6b6358;
+  font-size: 13px;
+}
+
 .recent-chat:hover,
 .profile-summary:hover {
   background: rgba(255, 240, 220, 0.05);
+  color: #f2ece4;
+}
+
+.recent-chat.active {
+  background: rgba(255, 240, 220, 0.08);
   color: #f2ece4;
 }
 

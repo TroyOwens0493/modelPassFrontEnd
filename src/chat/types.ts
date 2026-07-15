@@ -1,5 +1,3 @@
-import type { ObjectId } from "mongodb";
-
 export type ChatRole = "user" | "model" | "system";
 
 export interface ChatMessage {
@@ -9,7 +7,7 @@ export interface ChatMessage {
 }
 
 export interface ChatDocument {
-    _id?: ObjectId;
+    _id?: string;
     userId: string;
     title: string;
     model: string;
@@ -21,7 +19,7 @@ export interface ChatDocument {
 }
 
 export interface CreateChatBody {
-    userId: string;
     title: string;
     model: string;
+    messages: ChatMessage[];
 }

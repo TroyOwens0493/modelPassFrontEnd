@@ -15,6 +15,9 @@ describe('createRouter', () => {
       pushState: vi.fn((_state, _title, path: string) => {
         locationStub.pathname = path
       }),
+      replaceState: vi.fn((_state, _title, path: string) => {
+        locationStub.pathname = path
+      }),
     })
     vi.stubGlobal('addEventListener', vi.fn())
     vi.stubGlobal('removeEventListener', vi.fn())
@@ -30,6 +33,23 @@ describe('createRouter', () => {
     expect(router.match('/')?.component).toBe(Home)
     expect(router.match('/chat')?.component).toBe(Chat)
     expect(router.match('/missing')?.component).toBe(NotFound)
+  })
+
+  it('matches parameterized chat routes and extracts the chat id', () => {
+    const router = createRouter([
+      { path: '/chat', component: Chat },
+      { path: '/chat/:chatId', component: Chat },
+      { path: '*', component: NotFound },
+    ])
+
+    expect(router.match('/chat')).toEqual({
+      component: Chat,
+      params: {},
+    })
+    expect(router.match('/chat/abc123')).toEqual({
+      component: Chat,
+      params: { chatId: 'abc123' },
+    })
   })
 
   it('updates subscribers when navigating with goto', () => {
@@ -49,6 +69,18 @@ describe('createRouter', () => {
     expect(seenPaths).toEqual(['/', '/chat'])
 
     unsubscribe()
+  })
+
+  it('can replace the current history entry', () => {
+    const router = createRouter([
+      { path: '/chat', component: Chat },
+      { path: '/chat/:chatId', component: Chat },
+    ])
+
+    router.goto('/chat/chat_123', { replace: true })
+
+    expect(history.replaceState).toHaveBeenCalledWith(null, '', '/chat/chat_123')
+    expect(history.pushState).not.toHaveBeenCalled()
   })
 
   it('removes the popstate listener after the last subscriber unsubscribes', () => {

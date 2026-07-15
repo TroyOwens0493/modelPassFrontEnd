@@ -9,10 +9,12 @@
     import { createRouter } from "./router";
     import { profileStore } from "./stores/profile";
     import { clearBilling, loadBilling } from "./stores/billing";
+    import { clearChats, loadChats } from "./stores/chats";
 
     const router = createRouter([
         { path: "/", component: Home },
         { path: "/chat", component: Chat },
+        { path: "/chat/:chatId", component: Chat },
         { path: "/login", component: AuthRedirect },
         { path: "/signup", component: AuthRedirect },
         { path: "/auth/callback", component: Home },
@@ -21,7 +23,9 @@
         { path: "*", component: Home },
     ]);
     const currentRoute = router.current;
-    let CurrentRoute = $derived(router.match($currentRoute)?.component ?? Home);
+    let matchedRoute = $derived(router.match($currentRoute));
+    let CurrentRoute = $derived(matchedRoute?.component ?? Home);
+    let routeParams = $derived(matchedRoute?.params ?? {});
     let showSidebar = $derived(
         $currentRoute !== "/login" &&
         $currentRoute !== "/signup" &&
@@ -33,22 +37,30 @@
             const response = await fetch("/auth/me", { credentials: "include" });
             if (response.ok) {
                 const payload = await response.json();
-                profileStore.set(payload.user ?? null);
+                const user = payload.user ?? null;
+                profileStore.set(user);
                 await loadBilling();
+                if (user?.id) {
+                    await loadChats(user.id);
+                } else {
+                    clearChats();
+                }
             } else {
                 profileStore.set(null);
                 clearBilling();
+                clearChats();
             }
         } catch {
             profileStore.set(null);
             clearBilling();
+            clearChats();
         }
     });
 </script>
 
 <div class="app-shell">
     {#if showSidebar}
-        <Sidebar goto={router.goto}/>
+        <Sidebar goto={router.goto} currentPath={$currentRoute} />
     {/if}
 
     <main
@@ -57,6 +69,6 @@
         class:profile-route={$currentRoute === "/profile"}
         aria-label="Model Pass app content"
     >
-        <CurrentRoute />
+        <CurrentRoute {...routeParams} goto={router.goto} />
     </main>
 </div>
