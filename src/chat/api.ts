@@ -5,6 +5,11 @@ type CreatedChat = {
     _id: string;
 };
 
+export type ChatSummary = {
+    _id: string;
+    title: string;
+};
+
 type ChatResponse = {
     _id: string;
     title: string;
@@ -43,6 +48,16 @@ export async function createChat(title: string, model: string) {
     });
 
     return parseResponse<CreatedChat>(response);
+}
+
+/** Fetches the ids and titles of every chat owned by the authenticated user. */
+export async function getChats(userId: string) {
+    const response = await fetch(
+        getApiPath(`/chats/all/${encodeURIComponent(userId)}`),
+        { credentials: "include" },
+    );
+
+    return parseResponse<ChatSummary[]>(response);
 }
 
 /** Fetches a persisted chat and restores its message timestamps. */

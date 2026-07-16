@@ -127,7 +127,7 @@ button {
 .recent {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .section-label {
@@ -158,6 +158,13 @@ button {
 .profile-summary:hover {
   background: rgba(255, 240, 220, 0.05);
   color: #f2ece4;
+}
+
+.recent-status {
+  margin: 0;
+  padding: 9px 11px;
+  color: #7d7469;
+  font-size: 13px;
 }
 
 .profile-summary {

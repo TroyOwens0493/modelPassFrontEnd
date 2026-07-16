@@ -203,6 +203,39 @@ test('new chat button navigates to the chat page', async ({ page }) => {
   await expect(page.getByLabel('New chat')).toBeVisible()
 })
 
+test('sidebar lists the user chats and opens the selected chat', async ({ page }) => {
+  const chatId = '507f1f77bcf86cd799439011'
+  await mockAuthenticatedBilling(page)
+  await page.route('**/chats/all/user_123', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { _id: chatId, title: 'Plan the summer trip' },
+        { _id: '507f191e810c19729de860ea', title: 'Explain compound interest' },
+      ]),
+    })
+  })
+  await page.route(`**/chats/${chatId}`, async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        _id: chatId,
+        title: 'Plan the summer trip',
+        model: 'openai/gpt-4o-mini',
+        messages: [],
+      }),
+    })
+  })
+  await page.goto('/')
+
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Explain compound interest' })).toBeVisible()
+  await page.getByRole('button', { name: 'Plan the summer trip' }).click()
+
+  await expect(page).toHaveURL(`/chat/${chatId}`)
+  await expect(page.getByRole('textbox', { name: 'Message' })).toBeVisible()
+})
+
 test('chat composer enables send after typing and clears after sending', async ({ page }) => {
   await mockAuthenticatedBilling(page)
   await page.goto('/chat')
