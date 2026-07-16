@@ -494,22 +494,11 @@
     background: var(--accent);
   }
 
-  .ghost-button,
   .save-button,
   .segmented-control button,
   .sign-out {
     font: inherit;
     cursor: pointer;
-  }
-
-  .ghost-button {
-    border: 1px solid var(--line-strong);
-    border-radius: 9px;
-    padding: 8px 14px;
-    background: transparent;
-    color: #cdc4b8;
-    font-size: 13px;
-    font-weight: 550;
   }
 
   .settings-section {
@@ -730,7 +719,6 @@
       flex-direction: column;
     }
 
-    .ghost-button,
     .credits-mini a,
     .save-button {
       width: 100%;
