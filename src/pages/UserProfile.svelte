@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { getLogoutUrl } from '../auth/api';
+  import { logout as endSession } from '../auth';
   import { billingStore, loadBilling } from '../stores/billing';
-  import { getApiUrl } from '../api';
+  import { authenticatedFetch } from '../api';
+  import { clearBilling } from '../stores/billing';
+  import { profileStore } from '../stores/profile';
 
   type UserProfile = {
     id: string;
@@ -69,7 +71,7 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(getApiUrl('/auth/me'), { credentials: 'include' });
+      const response = await authenticatedFetch('/auth/me');
       if (!response.ok) {
         throw new Error('Not signed in');
       }
@@ -94,10 +96,9 @@
     errorMessage = '';
 
     try {
-      const response = await fetch(getApiUrl('/auth/me'), {
+      const response = await authenticatedFetch('/auth/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ name: displayName, replyStyle, defaultModel }),
       });
 
@@ -115,8 +116,15 @@
     }
   }
 
-  function logout() {
-    window.location.replace(getLogoutUrl());
+  async function logout() {
+    try {
+      await endSession();
+    } finally {
+      user = null;
+      profileStore.set(null);
+      clearBilling();
+      window.location.replace('/');
+    }
   }
 
   loadProfile();

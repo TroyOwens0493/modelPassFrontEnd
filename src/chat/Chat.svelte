@@ -8,11 +8,13 @@
 
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
     const availableModels = getAvailableModels();
+    import { authenticatedFetch } from "../api";
 
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
     let flashMessage = $state("");
     let selectedModel = $state(availableModels[0]?.slug ?? "openai/gpt-4o-mini");
+    let authenticationRequired = $state(false);
 
     function isInsufficientCreditsError(error: unknown) {
         return (
@@ -23,9 +25,8 @@
     }
 
     async function streamResponse(history: ChatMessage[]) {
-        const response = await fetch(`${BASE_URL}/chats/response`, {
+        const response = await authenticatedFetch("/chats/response", {
             method: "POST",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
             },
@@ -42,7 +43,7 @@
                 : { error: await response.text() };
 
             const error = new Error(body.error ?? "Failed to get model response");
-            Object.assign(error, { code: body.code });
+            Object.assign(error, { code: body.code, status: response.status });
             throw error;
         }
 
@@ -75,6 +76,7 @@
     /** Adds message to history locally, and requests message from server. */
     async function handleSend(message: ChatMessage) {
         flashMessage = "";
+        authenticationRequired = false;
         chatHistory.push(message);
         try {
             await streamResponse([...chatHistory]);
@@ -82,6 +84,12 @@
         } catch (error) {
             if (isInsufficientCreditsError(error)) {
                 flashMessage = "You don't have enough credits. Add credits to continue.";
+                return;
+            }
+
+            if (error instanceof Error && "status" in error && error.status === 401) {
+                authenticationRequired = true;
+                flashMessage = "Your session ended. Sign in to continue chatting.";
                 return;
             }
 
@@ -104,6 +112,10 @@
 
         {#if flashMessage}
             <p class="chat-flash" role="alert">{flashMessage}</p>
+        {/if}
+
+        {#if authenticationRequired}
+            <a href="/login">Sign in</a>
         {/if}
 
         {#if !isChatting}
