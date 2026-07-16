@@ -236,6 +236,26 @@ test('sidebar lists the user chats and opens the selected chat', async ({ page }
   await expect(page.getByRole('textbox', { name: 'Message' })).toBeVisible()
 })
 
+test('sidebar search filters chats by title', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+  await page.route('**/chats/all/user_123', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { _id: '507f1f77bcf86cd799439011', title: 'Plan the summer trip' },
+        { _id: '507f191e810c19729de860ea', title: 'Explain compound interest' },
+      ]),
+    })
+  })
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toBeVisible()
+
+  await page.getByRole('searchbox', { name: 'Search chats' }).fill('COMPOUND')
+
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Explain compound interest' })).toBeVisible()
+})
+
 test('chat composer enables send after typing and clears after sending', async ({ page }) => {
   await mockAuthenticatedBilling(page)
   await page.goto('/chat')

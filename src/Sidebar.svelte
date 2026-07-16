@@ -8,10 +8,17 @@
     let chats = $state<ChatSummary[]>([]);
     let chatsLoading = $state(true);
     let chatsUnavailable = $state(false);
+    let searchQuery = $state("");
 
     let profile = $derived($profileStore);
     let displayName = $derived(getDisplayName(profile));
     let initials = $derived(getInitials(profile));
+    let normalizedSearchQuery = $derived(searchQuery.trim().toLowerCase());
+    let filteredChats = $derived(
+        chats.filter((chat) =>
+            chat.title.toLowerCase().includes(normalizedSearchQuery),
+        ),
+    );
     let creditLabel = $derived(
         $billingStore.summary
             ? `${$billingStore.summary.balance.creditBalance.toLocaleString()} credits left`
@@ -72,6 +79,7 @@
             type="search"
             placeholder="Search chats"
             aria-label="Search chats"
+            bind:value={searchQuery}
         />
     </label>
 
@@ -83,8 +91,10 @@
             <p class="recent-status">Chats unavailable.</p>
         {:else if chats.length === 0}
             <p class="recent-status">No chats yet.</p>
+        {:else if filteredChats.length === 0}
+            <p class="recent-status">No matching chats.</p>
         {:else}
-            {#each chats as chat (chat._id)}
+            {#each filteredChats as chat (chat._id)}
                 <button
                     class="recent-chat"
                     type="button"
