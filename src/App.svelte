@@ -4,19 +4,21 @@
     import Home from "./Home.svelte";
     import Chat from "./chat/Chat.svelte";
     import AuthRedirect from "./auth/AuthRedirect.svelte";
+    import AuthCallback from "./auth/AuthCallback.svelte";
     import Credits from "./billing/Credits.svelte";
     import UserProfile from "./pages/UserProfile.svelte";
     import { createRouter } from "./router";
     import { profileStore } from "./stores/profile";
     import { clearBilling, loadBilling } from "./stores/billing";
-    import { getApiUrl } from "./api";
+    import { authenticatedFetch } from "./api";
+    import { registerAuthResetHandler, restoreAuthentication } from "./auth";
 
     const router = createRouter([
         { path: "/", component: Home },
         { path: "/chat", component: Chat },
         { path: "/login", component: AuthRedirect },
         { path: "/signup", component: AuthRedirect },
-        { path: "/auth/callback", component: Home },
+        { path: "/auth/callback", component: AuthCallback },
         { path: "/credits", component: Credits },
         { path: "/profile", component: UserProfile },
         { path: "*", component: Home },
@@ -29,21 +31,32 @@
         $currentRoute !== "/profile",
     );
 
-    onMount(async () => {
-        try {
-            const response = await fetch(getApiUrl("/auth/me"), { credentials: "include" });
-            if (response.ok) {
-                const payload = await response.json();
-                profileStore.set(payload.user ?? null);
-                await loadBilling();
-            } else {
+    onMount(() => {
+        const unregisterReset = registerAuthResetHandler(() => {
+            profileStore.set(null);
+            clearBilling();
+        });
+
+        void (async () => {
+            if (!restoreAuthentication()) return;
+
+            try {
+                const response = await authenticatedFetch("/auth/me");
+                if (response.ok) {
+                    const payload = await response.json();
+                    profileStore.set(payload.user ?? null);
+                    await loadBilling();
+                } else {
+                    profileStore.set(null);
+                    clearBilling();
+                }
+            } catch {
                 profileStore.set(null);
                 clearBilling();
             }
-        } catch {
-            profileStore.set(null);
-            clearBilling();
-        }
+        })();
+
+        return unregisterReset;
     });
 </script>
 
