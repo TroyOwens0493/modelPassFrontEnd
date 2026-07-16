@@ -1,12 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { getLoginUrl, getSignUpUrl } from "./api";
+  import { beginAuthentication } from ".";
 
   onMount(() => {
-    const authUrl = window.location.pathname === "/signup"
-      ? getSignUpUrl()
-      : getLoginUrl();
-
-    window.location.replace(authUrl);
+    beginAuthentication(window.location.pathname === "/signup" ? "sign-up" : "sign-in");
   });
 </script>
+
+<p>Redirecting to sign in…</p>

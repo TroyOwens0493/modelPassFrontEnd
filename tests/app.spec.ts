@@ -1,5 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const payload = btoa(JSON.stringify({ exp: 4_102_444_800 }))
+    sessionStorage.setItem('modelpass.accessToken', `header.${payload}.signature`)
+    sessionStorage.setItem('modelpass.refreshToken', 'refresh_test')
+    sessionStorage.setItem('modelpass.user', JSON.stringify({
+      id: 'user_123', email: 'sam@example.com', firstName: 'Sam', lastName: 'Rivera',
+    }))
+  })
+})
+
 const billingSummary = {
   balance: {
     creditBalance: 475,
@@ -55,6 +66,8 @@ const billingSummary = {
 
 async function mockAuthenticatedBilling(page: Page) {
   await page.route('**/auth/me', async (route) => {
+    expect(route.request().headers().authorization).toMatch(/^Bearer /)
+    expect(route.request().headers().cookie).toBeUndefined()
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -68,6 +81,8 @@ async function mockAuthenticatedBilling(page: Page) {
     })
   })
   await page.route('**/api/billing', async (route) => {
+    expect(route.request().headers().authorization).toMatch(/^Bearer /)
+    expect(route.request().headers().cookie).toBeUndefined()
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(billingSummary),
@@ -76,15 +91,38 @@ async function mockAuthenticatedBilling(page: Page) {
 }
 
 for (const routeName of ['login', 'signup']) {
-  test(`${routeName} route redirects to the backend WorkOS endpoint`, async ({ page }) => {
-    await page.route(`**/auth/${routeName}`, async (route) => {
+  test(`${routeName} route redirects to the backend bearer authorization endpoint`, async ({ page }) => {
+    await page.route('**/auth/authorize?**', async (route) => {
       await route.fulfill({ contentType: 'text/html', body: `WorkOS ${routeName}` })
     })
 
     await page.goto(`/${routeName}`)
 
-    await expect(page).toHaveURL(new RegExp(`/auth/${routeName}$`))
+    await expect(page).toHaveURL(new RegExp(`/auth/authorize\\?.*screen_hint=sign-${routeName === 'login' ? 'in' : 'up'}`))
   })
+}
+
+test('callback validates state, exchanges once, and removes the fragment', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('modelpass.authorizationState', 'expected_state_123'))
+  let exchangeCount = 0
+  await page.route('**/auth/exchange', async (route) => {
+    exchangeCount += 1
+    expect(new URL(page.url()).hash).toBe('')
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      accessToken: sessionToken(), refreshToken: 'rotated_refresh',
+      user: { id: 'user_123', email: 'sam@example.com' },
+    }) })
+  })
+  await page.route('**/auth/me', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: { id: 'user_123' } }) }))
+  await page.route('**/api/billing', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(billingSummary) }))
+
+  await page.goto('/auth/callback#code=one_use_code&state=expected_state_123')
+  await expect(page).toHaveURL('/chat')
+  expect(exchangeCount).toBe(1)
+})
+
+function sessionToken() {
+  return `header.${Buffer.from(JSON.stringify({ exp: 4_102_444_800 })).toString('base64url')}.signature`
 }
 
 test('home page renders the app shell and empty state', async ({ page }) => {
@@ -96,15 +134,20 @@ test('home page renders the app shell and empty state', async ({ page }) => {
   await expect(page.getByText('Please create a new chat to start working with AI.')).toBeVisible()
 })
 
-test('profile sign out redirects to the backend logout endpoint', async ({ page }) => {
+test('profile sign out revokes with bearer auth and returns home without cookies', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+  let authorization = ''
   await page.route('**/auth/logout', async (route) => {
-    await route.fulfill({ contentType: 'text/html', body: 'WorkOS logout' })
+    authorization = route.request().headers().authorization ?? ''
+    await route.fulfill({ status: 204 })
   })
 
   await page.goto('/profile')
   await page.getByRole('button', { name: 'Sign out' }).click()
 
-  await expect(page).toHaveURL(/\/auth\/logout$/)
+  await expect(page).toHaveURL('/')
+  expect(authorization).toMatch(/^Bearer /)
+  expect(await page.context().cookies()).toEqual([])
 })
 
 test('new chat button navigates to the chat page', async ({ page }) => {
@@ -178,4 +221,12 @@ test('profile uses the same dynamic balance and usage totals', async ({ page }) 
   await expect(page.getByText('475 credits left')).toHaveCount(2)
   await expect(page.getByText('25', { exact: true })).toBeVisible()
   await expect(page.getByText('12,000', { exact: true })).toBeVisible()
+})
+
+test('checkout return in the same tab retains bearer authentication', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+  await page.goto('/credits?checkout=success&checkout_id=checkout_123')
+
+  await expect(page.getByText('475 credits left')).toBeVisible()
+  expect(await page.evaluate(() => sessionStorage.getItem('modelpass.refreshToken'))).toBe('refresh_test')
 })

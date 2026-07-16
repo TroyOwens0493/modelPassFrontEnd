@@ -2,6 +2,12 @@
 
 Svelte + Vite app for the Model Pass chat experience.
 
+## Authentication
+
+Model Pass uses WorkOS AuthKit with backend authorization-code exchange and refresh. Access and rotating refresh tokens live only in `sessionStorage`, so they are available to same-origin JavaScript, are not shared with new tabs, and are destroyed when the tab closes. Each new tab must sign in independently.
+
+Without a custom authentication API domain, WorkOS AuthKit session tokens use `https://api.workos.com/` as their issuer and the application client ID in the `client_id` claim. If a custom authentication API domain is added later, set its issuer in `WORKOS_JWT_ISSUER`. WorkOS must allow `https://modelpassbackend.onrender.com/auth/token-callback` as a callback URL.
+
 ## Current App Shell
 
 `src/App.svelte` owns the signed-in shell:

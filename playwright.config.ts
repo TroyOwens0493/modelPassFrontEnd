@@ -9,14 +9,17 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'pnpm dev -- --host 127.0.0.1',
+    command: 'pnpm dev --host 127.0.0.1',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { args: ['--test-third-party-cookie-phaseout'] },
+      },
     },
   ],
 })

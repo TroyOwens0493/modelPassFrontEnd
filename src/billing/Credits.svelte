@@ -4,7 +4,6 @@
     BillingApiError,
     createCheckoutSession,
   } from "./api";
-  import { getLoginUrl } from "../auth/api";
   import { billingStore, refreshBilling } from "../stores/billing";
 
   let summary = $derived($billingStore.summary);
@@ -105,7 +104,7 @@
     <div class="state-card">
       <h2>Sign in to manage credits</h2>
       <p>Your balance and purchases are linked to your Model Pass account.</p>
-      <a class="primary-link" href={getLoginUrl()}>Sign in</a>
+      <a class="primary-link" href="/login">Sign in</a>
     </div>
   {:else if errorMessage}
     <div class="state-card" role="alert">
