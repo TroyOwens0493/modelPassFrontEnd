@@ -87,7 +87,91 @@ for (const routeName of ['login', 'signup']) {
   })
 }
 
+for (const authAction of [
+  { name: 'Log in', route: 'login' },
+  { name: 'Sign up', route: 'signup' },
+]) {
+  test(`no-auth ${authAction.name} button navigates through the app router`, async ({ page }) => {
+    await page.route(`**/auth/${authAction.route}`, async (route) => {
+      await route.fulfill({ contentType: 'text/html', body: `WorkOS ${authAction.route}` })
+    })
+    await page.goto('/no-auth')
+
+    await page.getByRole('button', { name: authAction.name, exact: true }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/auth/${authAction.route}$`))
+  })
+}
+
+for (const protectedRoute of ['/', '/chat', '/chat/chat_123', '/credits', '/profile', '/missing']) {
+  test(`signed-out visitors to ${protectedRoute} are redirected to no-auth`, async ({ page }) => {
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+    })
+
+    await page.goto(protectedRoute)
+
+    await expect(page).toHaveURL('/no-auth')
+    await expect(page.getByRole('heading', { name: "It looks like you haven't signed in yet." })).toBeVisible()
+  })
+}
+
+test('protected content does not render while the session check is pending', async ({ page }) => {
+  let releaseSessionCheck: () => void = () => undefined
+  const sessionCheckReleased = new Promise<void>((resolve) => {
+    releaseSessionCheck = resolve
+  })
+  await page.route('**/auth/me', async (route) => {
+    await sessionCheckReleased
+    await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+  })
+
+  await page.goto('/chat')
+
+  await expect(page.getByRole('heading', { name: 'Checking your session...' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Message' })).toHaveCount(0)
+
+  releaseSessionCheck()
+  await expect(page).toHaveURL('/no-auth')
+})
+
+test('auth service failures remain retryable without redirecting', async ({ page }) => {
+  await page.route('**/auth/me', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+  })
+
+  await page.goto('/')
+
+  await expect(page).toHaveURL('/')
+  await expect(page.getByRole('heading', { name: "We couldn't verify your session." })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+})
+
+test('protected route changes revalidate an expired session', async ({ page }) => {
+  let sessionChecks = 0
+  await page.route('**/auth/me', async (route) => {
+    sessionChecks += 1
+    await route.fulfill(sessionChecks === 1
+      ? {
+          contentType: 'application/json',
+          body: JSON.stringify({ user: { id: 'user_123', email: 'sam@example.com' } }),
+        }
+      : { status: 401, contentType: 'application/json', body: '{}' })
+  })
+  await page.route('**/api/billing', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+  })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Howdy' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'New chat' }).click()
+
+  await expect(page).toHaveURL('/no-auth')
+  await expect(page.getByRole('textbox', { name: 'Message' })).toHaveCount(0)
+})
+
 test('home page renders the app shell and empty state', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.goto('/')
 
   await expect(page.getByRole('complementary', { name: 'Primary' })).toBeVisible()
@@ -97,6 +181,7 @@ test('home page renders the app shell and empty state', async ({ page }) => {
 })
 
 test('profile sign out redirects to the backend logout endpoint', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.route('**/auth/logout', async (route) => {
     await route.fulfill({ contentType: 'text/html', body: 'WorkOS logout' })
   })
@@ -108,6 +193,7 @@ test('profile sign out redirects to the backend logout endpoint', async ({ page 
 })
 
 test('new chat button navigates to the chat page', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.goto('/')
 
   await page.getByRole('button', { name: 'New chat' }).click()
@@ -117,7 +203,61 @@ test('new chat button navigates to the chat page', async ({ page }) => {
   await expect(page.getByLabel('New chat')).toBeVisible()
 })
 
+test('sidebar lists the user chats and opens the selected chat', async ({ page }) => {
+  const chatId = '507f1f77bcf86cd799439011'
+  await mockAuthenticatedBilling(page)
+  await page.route('**/chats/all/user_123', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { _id: chatId, title: 'Plan the summer trip' },
+        { _id: '507f191e810c19729de860ea', title: 'Explain compound interest' },
+      ]),
+    })
+  })
+  await page.route(`**/chats/${chatId}`, async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        _id: chatId,
+        title: 'Plan the summer trip',
+        model: 'openai/gpt-4o-mini',
+        messages: [],
+      }),
+    })
+  })
+  await page.goto('/')
+
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Explain compound interest' })).toBeVisible()
+  await page.getByRole('button', { name: 'Plan the summer trip' }).click()
+
+  await expect(page).toHaveURL(`/chat/${chatId}`)
+  await expect(page.getByRole('textbox', { name: 'Message' })).toBeVisible()
+})
+
+test('sidebar search filters chats by title', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+  await page.route('**/chats/all/user_123', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { _id: '507f1f77bcf86cd799439011', title: 'Plan the summer trip' },
+        { _id: '507f191e810c19729de860ea', title: 'Explain compound interest' },
+      ]),
+    })
+  })
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toBeVisible()
+
+  await page.getByRole('searchbox', { name: 'Search chats' }).fill('COMPOUND')
+
+  await expect(page.getByRole('button', { name: 'Plan the summer trip' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Explain compound interest' })).toBeVisible()
+})
+
 test('chat composer enables send after typing and clears after sending', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.goto('/chat')
 
   const messageInput = page.getByRole('textbox', { name: 'Message' })
@@ -134,6 +274,7 @@ test('chat composer enables send after typing and clears after sending', async (
 })
 
 test('chat page shows model selector and starter suggestions', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.goto('/chat')
 
   await expect(page.getByRole('button', { name: 'Selected model' })).toContainText('GPT-5.5')
@@ -199,18 +340,21 @@ test('credits page preserves the current balance during background refreshes', a
   releaseRefresh()
 })
 
-test('signed-out credits page preserves the billing unauthenticated state', async ({ page }) => {
+test('signed-out credits page redirects before loading billing', async ({ page }) => {
+  let billingRequests = 0
   await page.route('**/auth/me', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
   })
   await page.route('**/api/billing', async (route) => {
+    billingRequests += 1
     await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
   })
 
   await page.goto('/credits')
 
-  await expect(page.getByRole('heading', { name: 'Sign in to manage credits' })).toBeVisible()
+  await expect(page).toHaveURL('/no-auth')
+  expect(billingRequests).toBe(0)
 })
 
 test('profile uses the same dynamic balance and usage totals', async ({ page }) => {

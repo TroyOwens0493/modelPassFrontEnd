@@ -1,15 +1,54 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import MessageInput from "./MsgInput.svelte";
     import MessageHistory from "./MsgHistory.svelte";
     import type { ChatMessage } from "./types";
     import "./chat.css";
     import { refreshBilling } from "../stores/billing";
     import { getApiPath } from "../api";
+    import { appendMessage, createChat, getChat } from "./api";
+    import { getDisplayName, profileStore } from "../stores/profile";
 
+    let { chatId: routeChatId = null } = $props<{ chatId?: string | null }>();
+
+    const model = "openai/gpt-4o-mini";
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
+    const name = $derived(getDisplayName($profileStore));
     let flashMessage = $state("");
+    let activeChatId = $state<string | null>(null);
+    let isSending = $state(false);
+    let isLoading = $state(true);
+    let loadError = $state("");
 
+    /** Loads the routed chat history into the current conversation. */
+    async function loadChatHistory() {
+        if (!routeChatId) return;
+
+        isLoading = true;
+        loadError = "";
+
+        try {
+            const chat = await getChat(routeChatId);
+            chatHistory.splice(0, chatHistory.length, ...chat.messages);
+            activeChatId = routeChatId;
+        } catch (error) {
+            console.error(error);
+            loadError = "This chat could not be loaded.";
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    onMount(() => {
+        if (routeChatId) {
+            void loadChatHistory();
+        } else {
+            isLoading = false;
+        }
+    });
+
+    /** Identifies the API error returned when a user cannot afford a response. */
     function isInsufficientCreditsError(error: unknown) {
         return (
             error instanceof Error &&
@@ -18,6 +57,7 @@
         );
     }
 
+    /** Streams a model response into local history and returns it when complete. */
     async function streamResponse(history: ChatMessage[]) {
         const response = await fetch(getApiPath("/chats/response"), {
             method: "POST",
@@ -27,7 +67,7 @@
             },
             body: JSON.stringify({
                 messages: history,
-                model: "openai/gpt-4o-mini",
+                model,
             }),
         });
 
@@ -68,14 +108,27 @@
         }
 
         modelMessage.text += decoder.decode();
+        return modelMessage;
     }
 
-    /** Adds message to history locally, and requests message from server. */
+    /** Requests a response, then persists the completed user/model turn. */
     async function handleSend(message: ChatMessage) {
+        if (isSending) return;
+
         flashMessage = "";
+        isSending = true;
         chatHistory.push(message);
+
         try {
-            await streamResponse([...chatHistory]);
+            const modelMessage = await streamResponse([...chatHistory]);
+
+            if (!activeChatId) {
+                const chat = await createChat(message.text.slice(0, 60), model);
+                activeChatId = chat._id;
+            }
+
+            await appendMessage(activeChatId, message);
+            await appendMessage(activeChatId, modelMessage);
             await refreshBilling();
         } catch (error) {
             if (isInsufficientCreditsError(error)) {
@@ -85,36 +138,48 @@
             }
 
             console.error(error);
+            flashMessage = "Something went wrong. Please try again.";
+        } finally {
+            isSending = false;
         }
     }
 </script>
 
 <section class="chat-welcome" aria-label="New chat">
     <div class="welcome-content">
-        {#if !isChatting}
-            <h1>Good <span>evening</span>, {name}</h1>
-            <p>What are we working on today?</p>
-        {/if}
-        {#if isChatting}
-            <MessageHistory {chatHistory} />
-        {/if}
-
-        <MessageInput onSend={handleSend} />
-
-        {#if flashMessage}
-            <p class="chat-flash" role="alert">{flashMessage}</p>
-        {/if}
-
-        {#if !isChatting}
-            <div class="suggestions" aria-label="Suggestions">
-                <button type="button"><span></span>Write a quick message</button
-                >
-                <button type="button"
-                    ><span></span>Explain something simply</button
-                >
-                <button type="button"><span></span>Plan my week</button>
-                <button type="button"><span></span>Help me decide</button>
+        {#if isLoading}
+            <p class="chat-load-status" role="status">Loading chat...</p>
+        {:else if loadError}
+            <div class="chat-load-error" role="alert">
+                <p>{loadError}</p>
+                <button type="button" onclick={loadChatHistory}>Try again</button>
             </div>
+        {:else}
+            {#if !isChatting}
+                <h1>Good <span>evening</span>, {name}</h1>
+                <p>What are we working on today?</p>
+            {/if}
+            {#if isChatting}
+                <MessageHistory {chatHistory} />
+            {/if}
+
+            <MessageInput onSend={handleSend} disabled={isSending} />
+
+            {#if flashMessage}
+                <p class="chat-flash" role="alert">{flashMessage}</p>
+            {/if}
+
+            {#if !isChatting}
+                <div class="suggestions" aria-label="Suggestions">
+                    <button type="button"><span></span>Write a quick message</button
+                    >
+                    <button type="button"
+                        ><span></span>Explain something simply</button
+                    >
+                    <button type="button"><span></span>Plan my week</button>
+                    <button type="button"><span></span>Help me decide</button>
+                </div>
+            {/if}
         {/if}
     </div>
 </section>

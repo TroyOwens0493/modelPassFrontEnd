@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { ChatMessage } from "./types";
 
-    let { onSend } = $props<{
+    let { onSend, disabled = false } = $props<{
         onSend: (message: ChatMessage) => void;
+        disabled?: boolean;
     }>();
 
     const placeholder = "Ask me anything...";
@@ -24,7 +25,7 @@
 </script>
 
 <div class="message-input">
-    <textarea aria-label="Message" {placeholder} bind:value={query}></textarea>
+    <textarea aria-label="Message" {placeholder} bind:value={query} {disabled}></textarea>
 
     <div class="composer-actions">
         <div class="composer-left">
@@ -47,7 +48,7 @@
             class="send-button"
             type="button"
             aria-label="Send message"
-            disabled={!query.trim()}
+            disabled={disabled || !query.trim()}
             onclick={sendMsg}
         >
             ↑

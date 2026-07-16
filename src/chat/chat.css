@@ -40,6 +40,30 @@
   text-align: center;
 }
 
+.welcome-content .chat-load-status {
+  margin: 0;
+}
+
+.chat-load-error {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.welcome-content .chat-load-error p {
+  margin: 0;
+  color: #f3b5a5;
+}
+
+.chat-load-error button {
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 240, 220, 0.1);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--soft);
+  font: inherit;
+}
+
 .message-input {
   width: 100%;
   overflow: hidden;
