@@ -4,8 +4,7 @@
     import type { ChatMessage } from "./types";
     import "./chat.css";
     import { refreshBilling } from "../stores/billing";
-
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+    import { getApiPath } from "../api";
 
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
@@ -20,7 +19,7 @@
     }
 
     async function streamResponse(history: ChatMessage[]) {
-        const response = await fetch(`${BASE_URL}/chats/response`, {
+        const response = await fetch(getApiPath("/chats/response"), {
             method: "POST",
             credentials: "include",
             headers: {

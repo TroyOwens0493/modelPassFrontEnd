@@ -1,13 +1,13 @@
-import { getApiUrl } from "../api";
+import { getApiPath } from "../api";
 
 export function getLoginUrl() {
-  return getApiUrl("/auth/login");
+  return getApiPath("/auth/login");
 }
 
 export function getSignUpUrl() {
-  return getApiUrl("/auth/signup");
+  return getApiPath("/auth/signup");
 }
 
 export function getLogoutUrl() {
-  return getApiUrl("/auth/logout");
+  return getApiPath("/auth/logout");
 }

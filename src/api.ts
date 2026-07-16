@@ -1,5 +1,3 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
-
-export function getApiUrl(path: string) {
-  return `${apiBaseUrl}${path}`;
+export function getApiPath(path: string) {
+  return path.startsWith("/") ? path : `/${path}`;
 }

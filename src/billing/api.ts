@@ -1,4 +1,4 @@
-import { getApiUrl } from "../api";
+import { getApiPath } from "../api";
 
 export type CreditPackage = {
   id: string;
@@ -54,7 +54,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getBillingSummary() {
-  const response = await fetch(getApiUrl("/api/billing"), {
+  const response = await fetch(getApiPath("/api/billing"), {
     credentials: "include",
   });
 
@@ -62,7 +62,7 @@ export async function getBillingSummary() {
 }
 
 export async function createCheckoutSession(packageId: string) {
-  const response = await fetch(getApiUrl("/api/billing/checkout"), {
+  const response = await fetch(getApiPath("/api/billing/checkout"), {
     method: "POST",
     credentials: "include",
     headers: {

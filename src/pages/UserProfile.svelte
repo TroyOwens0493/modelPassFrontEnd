@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getLogoutUrl } from '../auth/api';
   import { billingStore, loadBilling } from '../stores/billing';
+  import { getApiPath } from '../api';
 
   type UserProfile = {
     id: string;
@@ -68,7 +69,7 @@
     errorMessage = '';
 
     try {
-      const response = await fetch('/auth/me', { credentials: 'include' });
+      const response = await fetch(getApiPath('/auth/me'), { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Not signed in');
       }
@@ -93,7 +94,7 @@
     errorMessage = '';
 
     try {
-      const response = await fetch('/auth/me', {
+      const response = await fetch(getApiPath('/auth/me'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

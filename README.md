@@ -56,6 +56,14 @@ main page content:
 
 ## Development
 
+Copy `.env.example` to `.env.local` if the backend is not running at
+`http://localhost:3000`. Browser API calls stay on the frontend origin and Vite
+reverse-proxies `/auth`, `/api`, and `/chats` to `API_PROXY_URL`.
+
+For Netlify production builds, add `API_PROXY_URL` to the site's environment
+variables with the production backend origin. The build emits matching proxy
+rewrites into `dist/_redirects` before deployment.
+
 ```sh
 pnpm install
 pnpm run dev

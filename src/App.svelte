@@ -9,6 +9,7 @@
     import { createRouter } from "./router";
     import { profileStore } from "./stores/profile";
     import { clearBilling, loadBilling } from "./stores/billing";
+    import { getApiPath } from "./api";
 
     const router = createRouter([
         { path: "/", component: Home },
@@ -30,7 +31,7 @@
 
     onMount(async () => {
         try {
-            const response = await fetch("/auth/me", { credentials: "include" });
+            const response = await fetch(getApiPath("/auth/me"), { credentials: "include" });
             if (response.ok) {
                 const payload = await response.json();
                 profileStore.set(payload.user ?? null);
