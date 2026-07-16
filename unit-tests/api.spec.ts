@@ -57,6 +57,6 @@ describe("authenticatedFetch", () => {
     const result = await authenticatedFetch("/protected");
     expect(result.status).toBe(401);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(sessionStorage.length).toBe(0);
   });
 });
-

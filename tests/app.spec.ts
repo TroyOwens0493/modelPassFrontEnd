@@ -107,6 +107,7 @@ test('callback validates state, exchanges once, and removes the fragment', async
   let exchangeCount = 0
   await page.route('**/auth/exchange', async (route) => {
     exchangeCount += 1
+    expect(new URL(page.url()).hash).toBe('')
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
       accessToken: sessionToken(), refreshToken: 'rotated_refresh',
       user: { id: 'user_123', email: 'sam@example.com' },

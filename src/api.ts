@@ -1,4 +1,4 @@
-import { withValidAccessToken } from "./auth";
+import { clearAuthentication, withValidAccessToken } from "./auth";
 import { getApiUrl } from "./apiUrl";
 
 export { getApiUrl } from "./apiUrl";
@@ -28,5 +28,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}) {
   const response = await withValidAccessToken(request);
   if (!(await isTokenAuthenticationFailure(response))) return response;
 
-  return withValidAccessToken(request, true);
+  const retriedResponse = await withValidAccessToken(request, true);
+  if (await isTokenAuthenticationFailure(retriedResponse)) clearAuthentication();
+  return retriedResponse;
 }
