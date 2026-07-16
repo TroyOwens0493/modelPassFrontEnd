@@ -15,6 +15,7 @@
     const router = createRouter([
         { path: "/", component: Home },
         { path: "/chat", component: Chat },
+        { path: "/chat/:chatId", component: Chat },
         { path: "/login", component: AuthRedirect },
         { path: "/signup", component: AuthRedirect },
         { path: "/auth/callback", component: Home },
@@ -24,7 +25,9 @@
         { path: "*", component: Home },
     ]);
     const currentRoute = router.current;
-    let CurrentRoute = $derived(router.match($currentRoute)?.component ?? Home);
+    let routeMatch = $derived(router.match($currentRoute));
+    let CurrentRoute = $derived(routeMatch?.component ?? Home);
+    let routeChatId = $derived(routeMatch?.params.chatId ?? null);
     let showSidebar = $derived(
         $currentRoute !== "/login" &&
         $currentRoute !== "/signup" &&
@@ -62,6 +65,10 @@
     >
         {#if $currentRoute === "/no-auth"}
             <UnAuthenticated goto={router.goto} />
+        {:else if CurrentRoute === Chat}
+            {#key $currentRoute}
+                <Chat chatId={routeChatId} />
+            {/key}
         {:else}
             <CurrentRoute />
         {/if}

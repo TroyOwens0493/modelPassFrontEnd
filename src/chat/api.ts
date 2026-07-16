@@ -1,8 +1,23 @@
 import { getApiPath } from "../api";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, ChatRole } from "./types";
 
 type CreatedChat = {
     _id: string;
+};
+
+type ChatResponse = {
+    _id: string;
+    title: string;
+    model: string;
+    messages: Array<{
+        timestamp: string;
+        role: ChatRole;
+        text: string;
+    }>;
+};
+
+export type LoadedChat = Omit<ChatResponse, "messages"> & {
+    messages: ChatMessage[];
 };
 
 /** Parses a chat API response and throws its server-provided error message. */
@@ -28,6 +43,24 @@ export async function createChat(title: string, model: string) {
     });
 
     return parseResponse<CreatedChat>(response);
+}
+
+/** Fetches a persisted chat and restores its message timestamps. */
+export async function getChat(chatId: string) {
+    const response = await fetch(getApiPath(`/chats/${encodeURIComponent(chatId)}`), {
+        credentials: "include",
+    });
+    const chat = await parseResponse<ChatResponse>(response);
+    const messages = chat.messages.map((message) => ({
+        ...message,
+        timestamp: new Date(message.timestamp),
+    }));
+
+    if (messages.some((message) => Number.isNaN(message.timestamp.getTime()))) {
+        throw new Error("The chat contains an invalid message timestamp");
+    }
+
+    return { ...chat, messages } satisfies LoadedChat;
 }
 
 /** Appends one completed message to an existing chat. */
