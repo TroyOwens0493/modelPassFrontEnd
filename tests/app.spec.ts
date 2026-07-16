@@ -87,6 +87,22 @@ for (const routeName of ['login', 'signup']) {
   })
 }
 
+for (const authAction of [
+  { name: 'Log in', route: 'login' },
+  { name: 'Sign up', route: 'signup' },
+]) {
+  test(`no-auth ${authAction.name} button navigates through the app router`, async ({ page }) => {
+    await page.route(`**/auth/${authAction.route}`, async (route) => {
+      await route.fulfill({ contentType: 'text/html', body: `WorkOS ${authAction.route}` })
+    })
+    await page.goto('/no-auth')
+
+    await page.getByRole('button', { name: authAction.name, exact: true }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/auth/${authAction.route}$`))
+  })
+}
+
 test('home page renders the app shell and empty state', async ({ page }) => {
   await page.goto('/')
 

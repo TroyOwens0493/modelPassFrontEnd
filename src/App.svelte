@@ -6,6 +6,7 @@
     import AuthRedirect from "./auth/AuthRedirect.svelte";
     import Credits from "./billing/Credits.svelte";
     import UserProfile from "./pages/UserProfile.svelte";
+    import UnAuthenticated from "./UnAuthenticated.svelte";
     import { createRouter } from "./router";
     import { profileStore } from "./stores/profile";
     import { clearBilling, loadBilling } from "./stores/billing";
@@ -19,6 +20,7 @@
         { path: "/auth/callback", component: Home },
         { path: "/credits", component: Credits },
         { path: "/profile", component: UserProfile },
+        { path: "/no-auth", component: UnAuthenticated },
         { path: "*", component: Home },
     ]);
     const currentRoute = router.current;
@@ -58,6 +60,10 @@
         class:profile-route={$currentRoute === "/profile"}
         aria-label="Model Pass app content"
     >
-        <CurrentRoute />
+        {#if $currentRoute === "/no-auth"}
+            <UnAuthenticated goto={router.goto} />
+        {:else}
+            <CurrentRoute />
+        {/if}
     </main>
 </div>
