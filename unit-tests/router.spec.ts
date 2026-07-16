@@ -32,6 +32,25 @@ describe('createRouter', () => {
     expect(router.match('/missing')?.component).toBe(NotFound)
   })
 
+  it('matches named path segments and extracts their values', () => {
+    const router = createRouter([
+      { path: '/chat', component: Chat },
+      { path: '/chat/:chatId', component: Chat },
+      { path: '*', component: NotFound },
+    ])
+
+    expect(router.match('/chat')).toEqual({
+      path: '/chat',
+      component: Chat,
+      params: {},
+    })
+    expect(router.match('/chat/507f1f77bcf86cd799439011')).toEqual({
+      path: '/chat/:chatId',
+      component: Chat,
+      params: { chatId: '507f1f77bcf86cd799439011' },
+    })
+  })
+
   it('updates subscribers when navigating with goto', () => {
     const router = createRouter([
       { path: '/', component: Home },
