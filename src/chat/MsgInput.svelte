@@ -1,9 +1,22 @@
 <script lang="ts">
     import type { ChatMessage } from "./types";
+    import ModelPicker from "./ModelPicker.svelte";
+    import type { ModelOption } from "../api/model";
 
-    let { onSend, disabled = false } = $props<{
+    let {
+        onSend,
+        models,
+        selectedModelId,
+        onModelSelect,
+        disabled = false,
+        modelPickerDisabled = false,
+    } = $props<{
         onSend: (message: ChatMessage) => void;
+        models: ModelOption[];
+        selectedModelId: string;
+        onModelSelect: (modelId: string) => void;
         disabled?: boolean;
+        modelPickerDisabled?: boolean;
     }>();
 
     const placeholder = "Ask me anything...";
@@ -29,15 +42,12 @@
 
     <div class="composer-actions">
         <div class="composer-left">
-            <button
-                class="model-pill"
-                type="button"
-                aria-label="Selected model"
-            >
-                <span class="model-dot" aria-hidden="true"></span>
-                GPT-5.5
-                <span aria-hidden="true">⌄</span>
-            </button>
+            <ModelPicker
+                {models}
+                selectedId={selectedModelId}
+                onSelect={onModelSelect}
+                disabled={modelPickerDisabled}
+            />
 
             <button class="icon-button" type="button" aria-label="Attach file">
                 +

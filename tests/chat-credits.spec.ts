@@ -10,6 +10,14 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/billing', async (route) => {
     await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
   })
+  await page.route('**/api/models', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        models: [{ id: 'openai/gpt-4o-mini', name: 'GPT-4o mini', contextLength: 128000, priceTier: 2 }],
+      }),
+    })
+  })
 })
 
 test('chat shows an out-of-credits message when the backend rejects usage', async ({ page }) => {

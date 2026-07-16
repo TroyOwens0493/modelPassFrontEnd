@@ -8,10 +8,14 @@
     import { getApiPath } from "../api";
     import { appendMessage, createChat, getChat } from "./api";
     import { getDisplayName, profileStore } from "../stores/profile";
+    import {
+        FALLBACK_MODEL_ID,
+        getModels,
+        type ModelOption,
+    } from "../api/model";
 
     let { chatId: routeChatId = null } = $props<{ chatId?: string | null }>();
 
-    const model = "openai/gpt-4o-mini";
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
     const name = $derived(getDisplayName($profileStore));
@@ -20,6 +24,30 @@
     let isSending = $state(false);
     let isLoading = $state(true);
     let loadError = $state("");
+    let models = $state<ModelOption[]>([]);
+    let selectedModelId = $state($profileStore?.defaultModel ?? FALLBACK_MODEL_ID);
+    let modelError = $state("");
+    const modelPickerDisabled = $derived(
+        isSending || activeChatId !== null || isChatting,
+    );
+
+    /** Loads selectable models and chooses a valid fallback for a new chat. */
+    async function loadModelOptions() {
+        modelError = "";
+
+        try {
+            models = await getModels();
+            if (!routeChatId && !models.some((model) => model.id === selectedModelId)) {
+                selectedModelId =
+                    models.find((model) => model.id === FALLBACK_MODEL_ID)?.id ??
+                    models[0]?.id ??
+                    "";
+            }
+        } catch (error) {
+            console.error(error);
+            modelError = "Models could not be loaded.";
+        }
+    }
 
     /** Loads the routed chat history into the current conversation. */
     async function loadChatHistory() {
@@ -32,6 +60,7 @@
             const chat = await getChat(routeChatId);
             chatHistory.splice(0, chatHistory.length, ...chat.messages);
             activeChatId = routeChatId;
+            selectedModelId = chat.model;
         } catch (error) {
             console.error(error);
             loadError = "This chat could not be loaded.";
@@ -41,6 +70,7 @@
     }
 
     onMount(() => {
+        void loadModelOptions();
         if (routeChatId) {
             void loadChatHistory();
         } else {
@@ -58,7 +88,7 @@
     }
 
     /** Streams a model response into local history and returns it when complete. */
-    async function streamResponse(history: ChatMessage[]) {
+    async function streamResponse(history: ChatMessage[], model: string) {
         const response = await fetch(getApiPath("/chats/response"), {
             method: "POST",
             credentials: "include",
@@ -113,14 +143,15 @@
 
     /** Requests a response, then persists the completed user/model turn. */
     async function handleSend(message: ChatMessage) {
-        if (isSending) return;
+        if (isSending || !selectedModelId) return;
 
         flashMessage = "";
         isSending = true;
         chatHistory.push(message);
+        const model = selectedModelId;
 
         try {
-            const modelMessage = await streamResponse([...chatHistory]);
+            const modelMessage = await streamResponse([...chatHistory], model);
 
             if (!activeChatId) {
                 const chat = await createChat(message.text.slice(0, 60), model);
@@ -143,6 +174,11 @@
             isSending = false;
         }
     }
+
+    /** Selects the model used when creating the next chat. */
+    function selectModel(modelId: string) {
+        selectedModelId = modelId;
+    }
 </script>
 
 <section class="chat-welcome" aria-label="New chat">
@@ -163,7 +199,21 @@
                 <MessageHistory {chatHistory} />
             {/if}
 
-            <MessageInput onSend={handleSend} disabled={isSending} />
+            <MessageInput
+                onSend={handleSend}
+                {models}
+                {selectedModelId}
+                onModelSelect={selectModel}
+                disabled={isSending || models.length === 0}
+                {modelPickerDisabled}
+            />
+
+            {#if modelError}
+                <div class="model-load-error" role="alert">
+                    <span>{modelError}</span>
+                    <button type="button" onclick={loadModelOptions}>Try again</button>
+                </div>
+            {/if}
 
             {#if flashMessage}
                 <p class="chat-flash" role="alert">{flashMessage}</p>

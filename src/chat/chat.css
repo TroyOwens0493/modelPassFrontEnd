@@ -66,7 +66,7 @@
 
 .message-input {
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 240, 220, 0.1);
   border-radius: 18px;
   background: #26221e;
@@ -175,6 +175,26 @@
   color: #f3b5a5;
   font-size: 14px;
   text-align: left;
+}
+
+.model-load-error {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: #f3b5a5;
+  font-size: 13px;
+}
+
+.model-load-error button {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .suggestions {

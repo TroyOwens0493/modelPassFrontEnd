@@ -12,6 +12,14 @@ test.beforeEach(async ({ page }) => {
     await page.route("**/api/billing", async (route) => {
         await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
     });
+    await page.route("**/api/models", async (route) => {
+        await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+                models: [{ id: "openai/gpt-4o-mini", name: "GPT-4o mini", contextLength: 128000, priceTier: 2 }],
+            }),
+        });
+    });
 });
 
 test("loads a persisted chat and appends new messages to it", async ({ page }) => {
@@ -66,6 +74,7 @@ test("loads a persisted chat and appends new messages to it", async ({ page }) =
     await expect(page.getByText("Previously saved question")).toBeVisible();
     await expect(page.getByText("Previously saved answer")).toBeVisible();
     await expect(page.locator("time")).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Selected model" })).toBeDisabled();
 
     await page.getByRole("textbox", { name: "Message" }).fill("A new question");
     await page.getByRole("button", { name: "Send message" }).click();
