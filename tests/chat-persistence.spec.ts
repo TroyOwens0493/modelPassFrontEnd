@@ -5,6 +5,18 @@ type SavedMessage = {
     text: string;
 };
 
+test.beforeEach(async ({ page }) => {
+    await page.route("**/auth/me", async (route) => {
+        await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({ user: { id: "user_123", email: "sam@example.com" } }),
+        });
+    });
+    await page.route("**/api/billing", async (route) => {
+        await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+    });
+});
+
 /** Mocks successful generation and records chat persistence requests. */
 async function mockChatApi(page: Page) {
     let createCount = 0;

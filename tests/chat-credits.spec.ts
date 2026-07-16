@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/auth/me', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ user: { id: 'user_123', email: 'sam@example.com' } }),
+    })
+  })
+  await page.route('**/api/billing', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+  })
+})
+
 test('chat shows an out-of-credits message when the backend rejects usage', async ({ page }) => {
   await page.route('**/chats/response', async (route) => {
     await route.fulfill({

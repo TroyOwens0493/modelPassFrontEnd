@@ -2,17 +2,7 @@
   import { getLogoutUrl } from '../auth/api';
   import { billingStore, loadBilling } from '../stores/billing';
   import { getApiPath } from '../api';
-
-  type UserProfile = {
-    id: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-    name?: string;
-    profilePictureUrl?: string | null;
-    replyStyle?: string;
-    defaultModel?: string;
-  };
+  import { profileStore, type AppProfile } from '../stores/profile';
 
   const recentChats = [
     'Saturday dinner party menu',
@@ -46,12 +36,12 @@
     { value: 'creative', label: 'Creative' },
   ];
 
-  let user: UserProfile | null = null;
-  let defaultModel = models[0].slug;
-  let replyStyle = replyStyles[0].value;
+  let user: AppProfile | null = $profileStore;
+  let defaultModel = user?.defaultModel ?? models[0].slug;
+  let replyStyle = user?.replyStyle ?? replyStyles[0].value;
   let savedMessage = '';
   let isSaving = false;
-  let isLoading = true;
+  let isLoading = false;
   let errorMessage = '';
 
   $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0];
@@ -63,28 +53,6 @@
     : $billingStore.loading
       ? 'Loading credits…'
       : 'Credits unavailable';
-
-  async function loadProfile() {
-    isLoading = true;
-    errorMessage = '';
-
-    try {
-      const response = await fetch(getApiPath('/auth/me'), { credentials: 'include' });
-      if (!response.ok) {
-        throw new Error('Not signed in');
-      }
-
-      const payload = await response.json();
-      user = payload.user;
-      defaultModel = user?.defaultModel ?? models[0].slug;
-      replyStyle = user?.replyStyle ?? replyStyles[0].value;
-    } catch {
-      errorMessage = 'We could not load your profile. Please sign in again.';
-      user = null;
-    } finally {
-      isLoading = false;
-    }
-  }
 
   async function savePreferences() {
     if (!user) return;
@@ -105,8 +73,9 @@
         throw new Error('Unable to save');
       }
 
-      const payload = await response.json();
+      const payload: { user: AppProfile } = await response.json();
       user = payload.user;
+      profileStore.set(payload.user);
       savedMessage = 'Preferences saved';
     } catch {
       errorMessage = 'We could not save your preferences.';
@@ -119,7 +88,6 @@
     window.location.replace(getLogoutUrl());
   }
 
-  loadProfile();
   void loadBilling();
 </script>
 
