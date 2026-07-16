@@ -99,7 +99,7 @@
     </div>
   {/if}
 
-  {#if loading}
+  {#if loading && !summary}
     <div class="state-card" aria-live="polite">Loading billing information…</div>
   {:else if unauthenticated}
     <div class="state-card">

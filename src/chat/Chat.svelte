@@ -37,7 +37,9 @@
                 ? await response.json()
                 : { error: await response.text() };
 
-            const error = new Error(body.error ?? "Failed to get model response");
+            const error = new Error(
+                body.error ?? "Failed to get model response",
+            );
             Object.assign(error, { code: body.code });
             throw error;
         }
@@ -77,7 +79,8 @@
             await refreshBilling();
         } catch (error) {
             if (isInsufficientCreditsError(error)) {
-                flashMessage = "You don't have enough credits. Add credits to continue.";
+                flashMessage =
+                    "You don't have enough credits. Add credits to continue.";
                 return;
             }
 
@@ -89,7 +92,7 @@
 <section class="chat-welcome" aria-label="New chat">
     <div class="welcome-content">
         {#if !isChatting}
-            <h1>Good <span>evening</span>, Sam</h1>
+            <h1>Good <span>evening</span>, {name}</h1>
             <p>What are we working on today?</p>
         {/if}
         {#if isChatting}

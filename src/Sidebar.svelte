@@ -14,10 +14,10 @@
     let displayName = $derived(getDisplayName(profile));
     let initials = $derived(getInitials(profile));
     let creditLabel = $derived(
-        $billingStore.loading
-            ? "Loading credits…"
-            : $billingStore.summary
-                ? `${$billingStore.summary.balance.creditBalance.toLocaleString()} credits left`
+        $billingStore.summary
+            ? `${$billingStore.summary.balance.creditBalance.toLocaleString()} credits left`
+            : $billingStore.loading
+                ? "Loading credits…"
                 : $billingStore.unauthenticated
                     ? "Sign in to view credits"
                     : "Credits unavailable",

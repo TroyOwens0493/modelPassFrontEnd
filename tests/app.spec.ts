@@ -156,6 +156,49 @@ test('credits page and sidebar show persisted accounting values', async ({ page 
   await expect(page.getByRole('button', { name: 'Buy Starter package' })).toBeEnabled()
 })
 
+test('credits page preserves the current balance during background refreshes', async ({ page }) => {
+  let delayBilling = false
+  let signalRefreshStarted: () => void = () => undefined
+  let releaseRefresh: () => void = () => undefined
+  const refreshStarted = new Promise<void>((resolve) => {
+    signalRefreshStarted = resolve
+  })
+  const refreshReleased = new Promise<void>((resolve) => {
+    releaseRefresh = resolve
+  })
+
+  await page.route('**/auth/me', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ user: { id: 'user_123', email: 'sam@example.com' } }),
+    })
+  })
+  await page.route('**/api/billing', async (route) => {
+    if (delayBilling) {
+      signalRefreshStarted()
+      await refreshReleased
+    }
+
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(billingSummary),
+    })
+  })
+
+  await page.goto('/credits?checkout=success')
+  await expect(page.getByLabel('Credit balance')).toContainText('475')
+
+  delayBilling = true
+  await refreshStarted
+
+  await expect(page.getByLabel('Credit balance')).toContainText('475')
+  await expect(page.getByText('475 credits left')).toBeVisible()
+  await expect(page.getByText('Loading billing information…')).toHaveCount(0)
+  await expect(page.getByText('Loading credits…')).toHaveCount(0)
+
+  releaseRefresh()
+})
+
 test('signed-out credits page preserves the billing unauthenticated state', async ({ page }) => {
   await page.route('**/auth/me', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 100))

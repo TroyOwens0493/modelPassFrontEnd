@@ -58,10 +58,10 @@
   $: displayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
   $: initials = (displayName || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   $: billingBalance = $billingStore.summary?.balance;
-  $: creditLabel = $billingStore.loading
-    ? 'Loading credits…'
-    : billingBalance
-      ? `${billingBalance.creditBalance.toLocaleString()} credits left`
+  $: creditLabel = billingBalance
+    ? `${billingBalance.creditBalance.toLocaleString()} credits left`
+    : $billingStore.loading
+      ? 'Loading credits…'
       : 'Credits unavailable';
 
   async function loadProfile() {
