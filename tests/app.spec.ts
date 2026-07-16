@@ -108,6 +108,7 @@ test('profile sign out redirects to the backend logout endpoint', async ({ page 
 })
 
 test('new chat button navigates to the chat page', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
   await page.goto('/')
 
   await page.getByRole('button', { name: 'New chat' }).click()

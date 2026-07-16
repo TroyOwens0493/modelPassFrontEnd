@@ -5,11 +5,18 @@
     import "./chat.css";
     import { refreshBilling } from "../stores/billing";
     import { getApiPath } from "../api";
+    import { appendMessage, createChat } from "./api";
+    import { getDisplayName, profileStore } from "../stores/profile";
 
+    const model = "openai/gpt-4o-mini";
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
+    const name = $derived(getDisplayName($profileStore));
     let flashMessage = $state("");
+    let chatId = $state<string | null>(null);
+    let isSending = $state(false);
 
+    /** Identifies the API error returned when a user cannot afford a response. */
     function isInsufficientCreditsError(error: unknown) {
         return (
             error instanceof Error &&
@@ -18,6 +25,7 @@
         );
     }
 
+    /** Streams a model response into local history and returns it when complete. */
     async function streamResponse(history: ChatMessage[]) {
         const response = await fetch(getApiPath("/chats/response"), {
             method: "POST",
@@ -27,7 +35,7 @@
             },
             body: JSON.stringify({
                 messages: history,
-                model: "openai/gpt-4o-mini",
+                model,
             }),
         });
 
@@ -68,14 +76,27 @@
         }
 
         modelMessage.text += decoder.decode();
+        return modelMessage;
     }
 
-    /** Adds message to history locally, and requests message from server. */
+    /** Requests a response, then persists the completed user/model turn. */
     async function handleSend(message: ChatMessage) {
+        if (isSending) return;
+
         flashMessage = "";
+        isSending = true;
         chatHistory.push(message);
+
         try {
-            await streamResponse([...chatHistory]);
+            const modelMessage = await streamResponse([...chatHistory]);
+
+            if (!chatId) {
+                const chat = await createChat(message.text.slice(0, 60), model);
+                chatId = chat._id;
+            }
+
+            await appendMessage(chatId, message);
+            await appendMessage(chatId, modelMessage);
             await refreshBilling();
         } catch (error) {
             if (isInsufficientCreditsError(error)) {
@@ -85,6 +106,9 @@
             }
 
             console.error(error);
+            flashMessage = "Something went wrong. Please try again.";
+        } finally {
+            isSending = false;
         }
     }
 </script>
@@ -99,7 +123,7 @@
             <MessageHistory {chatHistory} />
         {/if}
 
-        <MessageInput onSend={handleSend} />
+        <MessageInput onSend={handleSend} disabled={isSending} />
 
         {#if flashMessage}
             <p class="chat-flash" role="alert">{flashMessage}</p>
