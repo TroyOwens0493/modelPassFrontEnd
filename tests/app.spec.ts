@@ -53,6 +53,11 @@ const billingSummary = {
   fulfillmentEnabled: true,
 }
 
+const modelOptions = [
+  { id: 'openai/gpt-4o-mini', name: 'GPT-4o mini', contextLength: 128000, priceTier: 2 },
+  { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', contextLength: 200000, priceTier: 4 },
+]
+
 async function mockAuthenticatedBilling(page: Page) {
   await page.route('**/auth/me', async (route) => {
     await route.fulfill({
@@ -71,6 +76,12 @@ async function mockAuthenticatedBilling(page: Page) {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(billingSummary),
+    })
+  })
+  await page.route('**/api/models', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ models: modelOptions }),
     })
   })
 }
@@ -277,11 +288,53 @@ test('chat page shows model selector and starter suggestions', async ({ page }) 
   await mockAuthenticatedBilling(page)
   await page.goto('/chat')
 
-  await expect(page.getByRole('button', { name: 'Selected model' })).toContainText('GPT-5.5')
+  await expect(page.getByRole('button', { name: 'Selected model' })).toContainText('GPT-4o mini')
   await expect(page.getByRole('button', { name: 'Write a quick message' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Explain something simply' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Plan my week' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Help me decide' })).toBeVisible()
+})
+
+test('model selector searches and selects by model name', async ({ page }) => {
+  await mockAuthenticatedBilling(page)
+  await page.goto('/chat')
+
+  await page.getByRole('button', { name: 'Selected model' }).click()
+  await page.getByRole('searchbox', { name: 'Search models' }).fill('claude')
+
+  await expect(page.getByRole('button', { name: /Claude Sonnet 4/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /GPT-4o mini/ })).toHaveCount(0)
+  await expect(page.getByText('$$$$', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /Claude Sonnet 4/ }).click()
+  await expect(page.getByRole('button', { name: 'Selected model' })).toContainText('Claude Sonnet 4')
+})
+
+test('profile saves the selected default model', async ({ page }) => {
+  let savedModel = ''
+  await mockAuthenticatedBilling(page)
+  await page.route('**/auth/me', async (route) => {
+    if (route.request().method() === 'PATCH') {
+      savedModel = route.request().postDataJSON().defaultModel
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          user: { id: 'user_123', email: 'sam@example.com', defaultModel: savedModel },
+        }),
+      })
+      return
+    }
+
+    await route.fallback()
+  })
+  await page.goto('/profile')
+
+  await page.getByRole('button', { name: 'Default model' }).click()
+  await page.getByRole('searchbox', { name: 'Search models' }).fill('claude')
+  await page.getByRole('button', { name: /Claude Sonnet 4/ }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+  await expect.poll(() => savedModel).toBe('anthropic/claude-sonnet-4')
+  await expect(page.getByText('Preferences saved')).toBeVisible()
 })
 
 test('credits page and sidebar show persisted accounting values', async ({ page }) => {

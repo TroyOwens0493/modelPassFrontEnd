@@ -3,30 +3,18 @@
   import { billingStore, loadBilling } from '../stores/billing';
   import { getApiPath } from '../api';
   import { profileStore, type AppProfile } from '../stores/profile';
+  import ModelPicker from '../chat/ModelPicker.svelte';
+  import {
+    FALLBACK_MODEL_ID,
+    getModels,
+    type ModelOption,
+  } from '../api/model';
 
   const recentChats = [
     'Saturday dinner party menu',
     'Explain mortgage rates simply',
     'Lisbon trip - 4 days',
     "Kids' science questions",
-  ];
-
-  const models = [
-    {
-      slug: 'openai/gpt-4o-mini',
-      name: 'GPT-4o mini',
-      description: 'Quick answers for everyday questions',
-    },
-    {
-      slug: 'anthropic/claude-3.5-sonnet',
-      name: 'Claude Sonnet',
-      description: 'Thoughtful writing and clear explanations',
-    },
-    {
-      slug: 'google/gemini-flash',
-      name: 'Gemini Flash',
-      description: 'Speedy and great with long documents',
-    },
   ];
 
   const replyStyles = [
@@ -37,14 +25,16 @@
   ];
 
   let user: AppProfile | null = $profileStore;
-  let defaultModel = user?.defaultModel ?? models[0].slug;
+  let defaultModel = user?.defaultModel ?? FALLBACK_MODEL_ID;
   let replyStyle = user?.replyStyle ?? replyStyles[0].value;
   let savedMessage = '';
   let isSaving = false;
   let isLoading = false;
   let errorMessage = '';
+  let models: ModelOption[] = [];
+  let modelError = '';
 
-  $: selectedModel = models.find((model) => model.slug === defaultModel) ?? models[0];
+  $: selectedModel = models.find((model) => model.id === defaultModel);
   $: displayName = user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
   $: initials = (displayName || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   $: billingBalance = $billingStore.summary?.balance;
@@ -84,11 +74,31 @@
     }
   }
 
+  /** Loads models and selects a valid default when the saved model is unavailable. */
+  async function loadModelOptions() {
+    modelError = '';
+
+    try {
+      models = await getModels();
+      if (!models.some((model) => model.id === defaultModel)) {
+        defaultModel = models.find((model) => model.id === FALLBACK_MODEL_ID)?.id ?? models[0]?.id ?? '';
+      }
+    } catch {
+      modelError = 'Models could not be loaded.';
+    }
+  }
+
+  /** Updates the pending preferred model selection. */
+  function selectDefaultModel(modelId: string) {
+    defaultModel = modelId;
+  }
+
   function logout() {
     window.location.replace(getLogoutUrl());
   }
 
   void loadBilling();
+  void loadModelOptions();
 </script>
 
 <section class="profile-shell">
@@ -160,17 +170,16 @@
       <section class="settings-section">
         <p class="section-label">Chat preferences</p>
         <form class="settings-card" on:submit|preventDefault={savePreferences}>
-          <label class="settings-row preference-row">
+          <div class="settings-row preference-row">
             <span>Default model</span>
-            <span class="model-control">
-              <span class="model-dot"></span>
-              <select bind:value={defaultModel} aria-label="Default model">
-                {#each models as model}
-                  <option value={model.slug}>{model.name}</option>
-                {/each}
-              </select>
-            </span>
-          </label>
+            <ModelPicker
+              {models}
+              selectedId={defaultModel}
+              onSelect={selectDefaultModel}
+              disabled={isSaving || models.length === 0}
+              ariaLabel="Default model"
+            />
+          </div>
 
           <div class="settings-row preference-row">
             <span>Reply style</span>
@@ -189,10 +198,10 @@
 
           <div class="save-row">
             <div>
-              <strong>{selectedModel.name}</strong>
-              <span>{selectedModel.description}</span>
+              <strong>{selectedModel?.name ?? 'No model selected'}</strong>
+              <span>{selectedModel ? 'Preferred model for new chats' : modelError}</span>
             </div>
-            <button class="save-button" type="submit" disabled={isSaving}>
+            <button class="save-button" type="submit" disabled={isSaving || !selectedModel}>
               {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -486,8 +495,7 @@
     font-size: 11.5px;
   }
 
-  .plan-pill span,
-  .model-dot {
+  .plan-pill span {
     width: 7px;
     height: 7px;
     border-radius: 50%;
@@ -511,7 +519,7 @@
   }
 
   .settings-card {
-    overflow: hidden;
+    overflow: visible;
   }
 
   .settings-row {
@@ -540,22 +548,6 @@
 
   .preference-row {
     margin: 0;
-  }
-
-  .model-control {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-
-  .model-control select {
-    max-width: 160px;
-    border: none;
-    background: transparent;
-    color: #e8ddcf;
-    font: inherit;
-    font-size: 13.5px;
-    font-weight: 550;
   }
 
   .segmented-control {
@@ -725,8 +717,7 @@
       text-align: center;
     }
 
-    .segmented-control,
-    .model-control select {
+    .segmented-control {
       width: 100%;
     }
 

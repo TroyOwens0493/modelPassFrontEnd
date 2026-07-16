@@ -15,6 +15,17 @@ test.beforeEach(async ({ page }) => {
     await page.route("**/api/billing", async (route) => {
         await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
     });
+    await page.route("**/api/models", async (route) => {
+        await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+                models: [
+                    { id: "openai/gpt-4o-mini", name: "GPT-4o mini", contextLength: 128000, priceTier: 2 },
+                    { id: "anthropic/claude-sonnet-4", name: "Claude Sonnet 4", contextLength: 200000, priceTier: 4 },
+                ],
+            }),
+        });
+    });
 });
 
 /** Mocks successful generation and records chat persistence requests. */
@@ -75,6 +86,36 @@ test("creates one chat and appends each completed turn", async ({ page }) => {
         { role: "user", text: "Second prompt" },
         { role: "model", text: "Model response" },
     ]);
+});
+
+test("uses the selected model for generation and chat creation", async ({ page }) => {
+    let responseModel = "";
+    let createdModel = "";
+    await page.route("**/chats/response", async (route) => {
+        responseModel = route.request().postDataJSON().model;
+        await route.fulfill({ status: 200, contentType: "text/plain", body: "Model response" });
+    });
+    await page.route("**/chats", async (route) => {
+        createdModel = route.request().postDataJSON().model;
+        await route.fulfill({
+            status: 201,
+            contentType: "application/json",
+            body: JSON.stringify({ _id: "507f1f77bcf86cd799439011" }),
+        });
+    });
+    await page.route("**/chats/addMessage/**", async (route) => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.goto("/chat");
+
+    await page.getByRole("button", { name: "Selected model" }).click();
+    await page.getByRole("button", { name: /Claude Sonnet 4/ }).click();
+    await page.getByRole("textbox", { name: "Message" }).fill("Use Claude");
+    await page.getByRole("button", { name: "Send message" }).click();
+
+    await expect.poll(() => createdModel).toBe("anthropic/claude-sonnet-4");
+    expect(responseModel).toBe("anthropic/claude-sonnet-4");
+    await expect(page.getByRole("button", { name: "Selected model" })).toBeDisabled();
 });
 
 test("does not create a chat when generation fails", async ({ page }) => {
