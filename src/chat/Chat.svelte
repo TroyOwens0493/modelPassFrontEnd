@@ -4,12 +4,15 @@
     import type { ChatMessage } from "./types";
     import "./chat.css";
     import { refreshBilling } from "../stores/billing";
+    import { getAvailableModels } from "./modelOptions";
 
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+    const availableModels = getAvailableModels();
 
     const chatHistory = $state<ChatMessage[]>([]);
     const isChatting = $derived(chatHistory.length > 0);
     let flashMessage = $state("");
+    let selectedModel = $state(availableModels[0]?.slug ?? "openai/gpt-4o-mini");
 
     function isInsufficientCreditsError(error: unknown) {
         return (
@@ -28,7 +31,7 @@
             },
             body: JSON.stringify({
                 messages: history,
-                model: "openai/gpt-4o-mini",
+                model: selectedModel,
             }),
         });
 
@@ -97,7 +100,7 @@
             <MessageHistory {chatHistory} />
         {/if}
 
-        <MessageInput onSend={handleSend} />
+        <MessageInput onSend={handleSend} bind:selectedModel={selectedModel} models={availableModels} />
 
         {#if flashMessage}
             <p class="chat-flash" role="alert">{flashMessage}</p>

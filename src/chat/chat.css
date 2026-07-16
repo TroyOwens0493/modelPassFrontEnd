@@ -42,7 +42,7 @@
 
 .message-input {
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 240, 220, 0.1);
   border-radius: 18px;
   background: #26221e;
@@ -90,6 +90,10 @@
   font: inherit;
 }
 
+.model-picker {
+  position: relative;
+}
+
 .model-pill {
   display: flex;
   align-items: center;
@@ -108,6 +112,54 @@
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+.model-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid rgba(255, 240, 220, 0.08);
+  border-radius: 12px;
+  background: #1e1a16;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 2;
+}
+
+.model-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #efe7dc;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-menu-item:hover,
+.model-menu-item:focus-visible {
+  background: rgba(255, 240, 220, 0.08);
+  outline: none;
+}
+
+.model-menu-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.model-menu-description {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .icon-button,
